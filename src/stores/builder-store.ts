@@ -59,6 +59,7 @@ interface BuilderState {
   
   // Initialize with demo data
   initializeDemoData: () => void;
+  initializeTemplateData: (template: string) => void;
   
   // Generate app
   generateApp: (prompt: string) => Promise<void>;
@@ -263,6 +264,332 @@ const DEMO_SCREENS: AppScreen[] = [
   }
 ];
 
+// Template data for different app categories
+const TEMPLATE_DATA = {
+  fitness: {
+    appName: 'FitTracker Pro',
+    description: 'Track workouts, monitor progress, and achieve your fitness goals',
+    messages: [
+      {
+        id: '1',
+        app_id: 'demo-app',
+        role: 'user' as const,
+        content: 'I want to build a fitness tracking app with workout logging and progress charts',
+        version_number: 1,
+        tokens_used: null,
+        model: null,
+        created_at: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '2',
+        app_id: 'demo-app',
+        role: 'assistant' as const,
+        content: 'Perfect! Here\'s a Fitness App template with workout tracking, progress monitoring, and goal setting. You can customize it by asking me to modify specific features or add new functionality.',
+        version_number: 1,
+        tokens_used: 120,
+        model: 'gpt-4o',
+        created_at: new Date(Date.now() - 60000).toISOString(),
+      }
+    ],
+    screens: DEMO_SCREENS // Reuse existing fitness screens
+  },
+  food: {
+    appName: 'RecipeBook',
+    description: 'Discover amazing recipes, plan meals, and become a master chef',
+    messages: [
+      {
+        id: '1',
+        app_id: 'demo-app',
+        role: 'user' as const,
+        content: 'I want to create a recipe app with cooking instructions and meal planning',
+        version_number: 1,
+        tokens_used: null,
+        model: null,
+        created_at: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '2',
+        app_id: 'demo-app',
+        role: 'assistant' as const,
+        content: 'Excellent! Here\'s a Recipe App template with recipe discovery, cooking instructions, and meal planning features. Feel free to ask me to add new features or modify the design!',
+        version_number: 1,
+        tokens_used: 125,
+        model: 'gpt-4o',
+        created_at: new Date(Date.now() - 60000).toISOString(),
+      }
+    ],
+    screens: [
+      {
+        name: 'Home',
+        html: `<div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 28px; margin: 0 0 10px 0;">🍳 RecipeBook</h1>
+            <p style="opacity: 0.8; margin: 0;">Discover amazing recipes today</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Recipe of the Day</h3>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px;">
+              <h4 style="margin: 0 0 8px 0;">🍛 Spicy Thai Curry</h4>
+              <p style="margin: 0 0 10px 0; opacity: 0.8; font-size: 14px;">Delicious coconut curry with vegetables</p>
+              <button style="background: #FF5722; border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px;">Start Cooking</button>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; text-align: center;">
+              <div style="font-size: 24px; margin-bottom: 8px;">🥗</div>
+              <div style="font-size: 14px;">Healthy</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; text-align: center;">
+              <div style="font-size: 24px; margin-bottom: 8px;">🍰</div>
+              <div style="font-size: 14px;">Desserts</div>
+            </div>
+          </div>
+        </div>`
+      }
+    ]
+  },
+  education: {
+    appName: 'StudyBuddy',
+    description: 'Learn faster with interactive courses and personalized study schedules',
+    messages: [
+      {
+        id: '1',
+        app_id: 'demo-app',
+        role: 'user' as const,
+        content: 'I want to build an education app with courses, flashcards, and progress tracking',
+        version_number: 1,
+        tokens_used: null,
+        model: null,
+        created_at: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '2',
+        app_id: 'demo-app',
+        role: 'assistant' as const,
+        content: 'Great choice! Here\'s an Education App template with interactive courses, flashcard system, and progress tracking. You can ask me to add specific subjects or modify the learning features!',
+        version_number: 1,
+        tokens_used: 135,
+        model: 'gpt-4o',
+        created_at: new Date(Date.now() - 60000).toISOString(),
+      }
+    ],
+    screens: [
+      {
+        name: 'Dashboard',
+        html: `<div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 28px; margin: 0 0 10px 0;">📚 StudyBuddy</h1>
+            <p style="opacity: 0.8; margin: 0;">Learn something new today!</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Study Progress</h3>
+            <div style="margin-bottom: 15px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>Daily Goal</span>
+                <span>75%</span>
+              </div>
+              <div style="height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px;">
+                <div style="height: 100%; width: 75%; background: #4CAF50; border-radius: 4px;"></div>
+              </div>
+            </div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Continue Learning</h3>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px;">
+              <h4 style="margin: 0 0 8px 0;">🧮 Mathematics</h4>
+              <p style="margin: 0 0 10px 0; opacity: 0.8; font-size: 14px;">Chapter 5: Calculus</p>
+              <button style="background: #2196F3; border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px;">Continue</button>
+            </div>
+          </div>
+        </div>`
+      }
+    ]
+  },
+  productivity: {
+    appName: 'TaskMaster',
+    description: 'Organize your life with smart task management and productivity insights',
+    messages: [
+      {
+        id: '1',
+        app_id: 'demo-app',
+        role: 'user' as const,
+        content: 'I want to create a productivity app with task management and project tracking',
+        version_number: 1,
+        tokens_used: null,
+        model: null,
+        created_at: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '2',
+        app_id: 'demo-app',
+        role: 'assistant' as const,
+        content: 'Perfect! Here\'s a Productivity App template with task management, project tracking, and analytics. Feel free to ask me to add calendar integration or modify the workflow!',
+        version_number: 1,
+        tokens_used: 130,
+        model: 'gpt-4o',
+        created_at: new Date(Date.now() - 60000).toISOString(),
+      }
+    ],
+    screens: [
+      {
+        name: 'Dashboard',
+        html: `<div style="padding: 20px; background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 28px; margin: 0 0 10px 0;">✅ TaskMaster</h1>
+            <p style="opacity: 0.8; margin: 0;">Organize your productivity</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Today's Tasks</h3>
+            <div style="display: flex; justify-content: space-around; text-align: center;">
+              <div><div style="font-size: 24px; font-weight: bold;">8</div><div style="opacity: 0.8; font-size: 12px;">Completed</div></div>
+              <div><div style="font-size: 24px; font-weight: bold;">3</div><div style="opacity: 0.8; font-size: 12px;">In Progress</div></div>
+              <div><div style="font-size: 24px; font-weight: bold;">2</div><div style="opacity: 0.8; font-size: 12px;">Pending</div></div>
+            </div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Urgent Tasks</h3>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px;">
+              <h4 style="margin: 0 0 8px 0;">📋 Prepare presentation</h4>
+              <p style="margin: 0 0 10px 0; opacity: 0.8; font-size: 14px;">Due: Today 2:00 PM</p>
+              <button style="background: #FF5722; border: none; color: white; padding: 8px 16px; border-radius: 8px; font-size: 14px;">Start Now</button>
+            </div>
+          </div>
+        </div>`
+      }
+    ]
+  },
+  ecommerce: {
+    appName: 'ShopApp',
+    description: 'Create your online store with beautiful product displays and seamless checkout',
+    messages: [
+      {
+        id: '1',
+        app_id: 'demo-app',
+        role: 'user' as const,
+        content: 'I want to build an e-commerce app with product catalog and shopping cart',
+        version_number: 1,
+        tokens_used: null,
+        model: null,
+        created_at: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '2',
+        app_id: 'demo-app',
+        role: 'assistant' as const,
+        content: 'Excellent! Here\'s an E-commerce App template with product catalog, shopping cart, and order management. You can ask me to add payment integration or customize the store layout!',
+        version_number: 1,
+        tokens_used: 140,
+        model: 'gpt-4o',
+        created_at: new Date(Date.now() - 60000).toISOString(),
+      }
+    ],
+    screens: [
+      {
+        name: 'Store',
+        html: `<div style="padding: 20px; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 28px; margin: 0 0 10px 0;">🛍️ ShopApp</h1>
+            <p style="opacity: 0.8; margin: 0;">Discover amazing products</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Featured Products</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">📱</div>
+                <div style="font-size: 14px; margin-bottom: 5px;">iPhone Pro</div>
+                <div style="font-weight: bold;">$899</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 8px;">🎧</div>
+                <div style="font-size: 14px; margin-bottom: 5px;">AirPods</div>
+                <div style="font-weight: bold;">$199</div>
+              </div>
+            </div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Categories</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+              <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px;">
+                <div style="font-size: 20px; margin-bottom: 5px;">👕</div>Fashion
+              </div>
+              <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px;">
+                <div style="font-size: 20px; margin-bottom: 5px;">💻</div>Tech
+              </div>
+              <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; text-align: center; font-size: 12px;">
+                <div style="font-size: 20px; margin-bottom: 5px;">🏠</div>Home
+              </div>
+            </div>
+          </div>
+        </div>`
+      }
+    ]
+  },
+  social: {
+    appName: 'ConnectMe',
+    description: 'Build communities and connect people with social features and messaging',
+    messages: [
+      {
+        id: '1',
+        app_id: 'demo-app',
+        role: 'user' as const,
+        content: 'I want to create a social media app with posts, messaging, and communities',
+        version_number: 1,
+        tokens_used: null,
+        model: null,
+        created_at: new Date(Date.now() - 120000).toISOString(),
+      },
+      {
+        id: '2',
+        app_id: 'demo-app',
+        role: 'assistant' as const,
+        content: 'Awesome! Here\'s a Social Media App template with social feed, messaging, and community features. You can ask me to add story features or customize the social interactions!',
+        version_number: 1,
+        tokens_used: 145,
+        model: 'gpt-4o',
+        created_at: new Date(Date.now() - 60000).toISOString(),
+      }
+    ],
+    screens: [
+      {
+        name: 'Feed',
+        html: `<div style="padding: 20px; background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); min-height: 100vh; color: #333; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 28px; margin: 0 0 10px 0;">👥 ConnectMe</h1>
+            <p style="opacity: 0.7; margin: 0;">Stay connected with friends</p>
+          </div>
+          <div style="background: rgba(255,255,255,0.6); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);">
+            <h3 style="margin: 0 0 15px 0; font-size: 18px;">Recent Posts</h3>
+            <div style="background: rgba(255,255,255,0.5); border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+              <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; background: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">😊</div>
+                <div><strong>Emma Johnson</strong><br><span style="font-size: 12px; opacity: 0.7;">2 hours ago</span></div>
+              </div>
+              <p style="margin: 0 0 10px 0;">Just finished my morning workout! 💪</p>
+              <div style="display: flex; gap: 15px; font-size: 14px;">
+                <span>❤️ 24</span>
+                <span>💬 5</span>
+                <span>🔄 2</span>
+              </div>
+            </div>
+            <div style="background: rgba(255,255,255,0.5); border-radius: 12px; padding: 15px;">
+              <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; background: #2196F3; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px;">🎉</div>
+                <div><strong>Alex Chen</strong><br><span style="font-size: 12px; opacity: 0.7;">5 hours ago</span></div>
+              </div>
+              <p style="margin: 0 0 10px 0;">Celebrating my promotion! 🎉</p>
+              <div style="display: flex; gap: 15px; font-size: 14px;">
+                <span>❤️ 156</span>
+                <span>💬 32</span>
+                <span>🔄 18</span>
+              </div>
+            </div>
+          </div>
+        </div>`
+      }
+    ]
+  }
+};
+
 export const useBuilderStore = create<BuilderState>()(
   devtools(
     (set, get) => ({
@@ -341,6 +668,18 @@ export const useBuilderStore = create<BuilderState>()(
         appDescription: 'A comprehensive fitness tracking app with workout logging and progress charts',
         currentScreen: 0,
       }),
+      
+      initializeTemplateData: (template: string) => {
+        const templateData = TEMPLATE_DATA[template as keyof typeof TEMPLATE_DATA] || TEMPLATE_DATA.fitness;
+        set({
+          messages: templateData.messages,
+          screens: templateData.screens,
+          appId: 'demo-app',
+          appName: templateData.appName,
+          appDescription: templateData.description,
+          currentScreen: 0,
+        });
+      },
       
       // Generate app with streaming and contextual updates
       generateApp: async (prompt) => {

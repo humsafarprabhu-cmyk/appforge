@@ -19,7 +19,8 @@ interface ChatPanelProps {
   onChatInputChange: (value: string) => void;
   onSendMessage: () => void;
   onRetry: () => void;
-  isExpanded: boolean;
+  isExpanded?: boolean;
+  isDemo?: boolean;
 }
 
 export function ChatPanel({ 
@@ -32,7 +33,8 @@ export function ChatPanel({
   onChatInputChange, 
   onSendMessage,
   onRetry,
-  isExpanded 
+  isExpanded,
+  isDemo = false 
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

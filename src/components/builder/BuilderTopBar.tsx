@@ -12,9 +12,11 @@ interface BuilderTopBarProps {
   appName: string;
   appVersion: number;
   onAppNameChange: (name: string) => void;
+  isDemo?: boolean;
+  templateType?: string;
 }
 
-export function BuilderTopBar({ appName, appVersion, onAppNameChange }: BuilderTopBarProps) {
+export function BuilderTopBar({ appName, appVersion, onAppNameChange, isDemo = false, templateType }: BuilderTopBarProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempAppName, setTempAppName] = useState(appName);
 
@@ -36,7 +38,7 @@ export function BuilderTopBar({ appName, appVersion, onAppNameChange }: BuilderT
           </Link>
           
           <div className="flex items-center gap-2">
-            {isEditingName ? (
+            {isEditingName && !isDemo ? (
               <div className="flex items-center gap-2">
                 <Input
                   value={tempAppName}
@@ -52,14 +54,21 @@ export function BuilderTopBar({ appName, appVersion, onAppNameChange }: BuilderT
               </div>
             ) : (
               <div 
-                className="flex items-center gap-2 cursor-pointer group"
+                className={`flex items-center gap-2 ${!isDemo ? 'cursor-pointer group' : ''}`}
                 onClick={() => {
-                  setIsEditingName(true);
-                  setTempAppName(appName);
+                  if (!isDemo) {
+                    setIsEditingName(true);
+                    setTempAppName(appName);
+                  }
                 }}
               >
                 <h1 className="text-xl font-bold text-white">{appName}</h1>
-                <Edit2 className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                {!isDemo && <Edit2 className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                {isDemo && (
+                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                    Demo Template
+                  </Badge>
+                )}
               </div>
             )}
             

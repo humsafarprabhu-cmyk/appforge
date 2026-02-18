@@ -3,6 +3,7 @@ import { Hero } from "@/components/landing/Hero";
 import { SocialProof } from "@/components/landing/SocialProof";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Features } from "@/components/landing/Features";
+import { Examples } from "@/components/landing/Examples";
 import { LiveDemo } from "@/components/landing/LiveDemo";
 import { Pricing } from "@/components/landing/Pricing";
 import { FAQ } from "@/components/landing/FAQ";
@@ -34,6 +35,7 @@ export default function LandingPage() {
       <SocialProof />
       <HowItWorks />
       <Features />
+      <Examples />
       <LiveDemo />
       <Pricing />
       <FAQ />

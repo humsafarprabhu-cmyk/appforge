@@ -2215,8 +2215,9 @@ export async function POST(request: NextRequest) {
             : `Create a mobile app: ${prompt}${category ? ` (Category: ${category})` : ''}`
         });
 
-        // Create streaming response
-        const stream = await openai.chat.completions.create({
+        // Use NON-streaming OpenAI call to get complete response, then stream to frontend
+        console.log('Making OpenAI API call...');
+        const completion = await openai.chat.completions.create({
           model: OPENAI_MODEL || 'gpt-4o',
           messages: [
             { role: 'system', content: systemPrompt },
@@ -2225,64 +2226,57 @@ export async function POST(request: NextRequest) {
           max_tokens: MAX_CODE_TOKENS || 16000,
           temperature: 0.7,
           response_format: { type: "json_object" },
-          stream: true,
+          stream: false, // Non-streaming for reliable JSON response
         });
 
-        // Set up streaming response
-        const encoder = new TextEncoder();
-        let buffer = '';
-        let currentScreenIndex = 0;
+        console.log('OpenAI response received, processing...');
+        const responseContent = completion.choices[0]?.message?.content;
         
+        if (!responseContent) {
+          console.error('No content in OpenAI response');
+          throw new Error('No content in OpenAI response');
+        }
+
+        // Parse the JSON response
+        const aiResult = JSON.parse(responseContent);
+        
+        if (!aiResult.screens || !Array.isArray(aiResult.screens)) {
+          console.error('Invalid OpenAI response format:', aiResult);
+          throw new Error('Invalid response format from OpenAI');
+        }
+
+        console.log('OpenAI generated', aiResult.screens.length, 'screens successfully');
+
+        // Set up streaming response to frontend
+        const encoder = new TextEncoder();
         const readableStream = new ReadableStream({
           async start(controller) {
             try {
-              // Send initial progress
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'progress',
-                progress: 0,
-                message: `Generating screen 1 of ${expectedScreenCount}...`
-              })}\n\n`));
-
-              for await (const chunk of stream) {
-                const delta = chunk.choices[0]?.delta?.content || '';
-                buffer += delta;
-
-                // Try to detect screen progress in the stream
-                const screenMatches = buffer.match(/"name":\s*"[^"]+"/g);
-                if (screenMatches && screenMatches.length > currentScreenIndex) {
-                  currentScreenIndex = screenMatches.length;
-                  const progress = Math.min((currentScreenIndex / expectedScreenCount) * 100, 90);
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    type: 'progress',
-                    progress,
-                    message: `Generating screen ${Math.min(currentScreenIndex + 1, expectedScreenCount)} of ${expectedScreenCount}...`
-                  })}\n\n`));
-                }
-              }
-
-              // Process final response
-              try {
-                const result = JSON.parse(buffer);
+              // Send progress updates as we "stream" each screen to frontend
+              for (let i = 0; i < aiResult.screens.length; i++) {
+                const progress = ((i + 1) / aiResult.screens.length) * 90;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'progress',
+                  progress,
+                  message: `Processing screen ${i + 1} of ${aiResult.screens.length}...`
+                })}\n\n`));
                 
-                if (result.screens && Array.isArray(result.screens) && result.screens.length === expectedScreenCount) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    type: 'complete',
-                    ...result,
-                    success: true
-                  })}\n\n`));
-                } else {
-                  throw new Error('Invalid response format or incorrect screen count');
-                }
-              } catch (parseError) {
-                console.error('Failed to parse streaming response:', parseError);
-                // Fallback to mock implementation
-                await handleMockFallback(controller, encoder, prompt, detectCategory(prompt, category), appName, expectedScreenCount);
+                // Small delay to show progress
+                await new Promise(resolve => setTimeout(resolve, 200));
               }
+
+              // Send final complete result
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'complete',
+                screens: aiResult.screens,
+                appName: aiResult.appName || generateAppName(prompt),
+                description: aiResult.description || generateDescription(prompt),
+                success: true
+              })}\n\n`));
               
               controller.close();
             } catch (error) {
-              console.error('Streaming error:', error);
-              await handleMockFallback(controller, encoder, prompt, detectCategory(prompt, category), appName, expectedScreenCount);
+              console.error('Error streaming to frontend:', error);
               controller.close();
             }
           },
