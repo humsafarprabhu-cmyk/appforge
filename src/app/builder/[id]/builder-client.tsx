@@ -17,6 +17,9 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
   const {
     messages,
     isGenerating,
+    generationProgress,
+    generationMessage,
+    lastError,
     appName,
     screens,
     currentScreen,
@@ -27,12 +30,14 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
     setAppId,
     setAppName,
     generateApp,
+    retryGeneration,
     setCurrentScreen,
     setDeviceFrame,
     setTheme,
     setChatInputValue,
     setChatExpanded,
-    initializeDemoData
+    initializeDemoData,
+    loadState
   } = useBuilderStore();
 
   // Initialize data on mount
@@ -41,8 +46,10 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
       initializeDemoData();
     } else {
       setAppId(appId);
+      // Load saved state from localStorage
+      setTimeout(() => loadState(), 100); // Small delay to ensure appId is set
     }
-  }, [appId, initializeDemoData, setAppId]);
+  }, [appId, initializeDemoData, setAppId, loadState]);
 
   const handleSendMessage = async () => {
     if (!chatInputValue.trim() || isGenerating) return;
@@ -59,16 +66,14 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
     }
   };
 
-  const handleQRCode = () => {
-    toast.info('QR Code feature coming soon!');
-  };
-
-  const handleDownload = () => {
-    toast.info('Download feature coming soon!');
-  };
-
-  const handlePublish = () => {
-    toast.info('Publish feature coming soon!');
+  const handleRetry = async () => {
+    try {
+      await retryGeneration();
+      toast.success('Retrying generation...');
+    } catch (error) {
+      toast.error('Failed to retry generation.');
+      console.error('Retry error:', error);
+    }
   };
 
   return (
@@ -87,9 +92,13 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
           <ChatPanel
             messages={messages}
             isGenerating={isGenerating}
+            generationProgress={generationProgress}
+            generationMessage={generationMessage}
+            lastError={lastError}
             chatInputValue={chatInputValue}
             onChatInputChange={setChatInputValue}
             onSendMessage={handleSendMessage}
+            onRetry={handleRetry}
             isExpanded={isChatExpanded}
           />
         </div>
@@ -110,6 +119,7 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
               screens={screens}
               currentScreen={currentScreen}
               deviceFrame={deviceFrame}
+              isGenerating={isGenerating}
               onScreenChange={setCurrentScreen}
             />
           </div>
@@ -117,9 +127,8 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
           {/* Action Bar */}
           <ActionBar
             screensCount={screens.length}
-            onQRCode={handleQRCode}
-            onDownload={handleDownload}
-            onPublish={handlePublish}
+            appId={appId}
+            appName={appName}
           />
         </div>
       </div>

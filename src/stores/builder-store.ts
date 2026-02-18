@@ -12,6 +12,8 @@ interface BuilderState {
   // Chat state
   messages: ChatMessage[];
   isGenerating: boolean;
+  generationProgress: number;
+  generationMessage: string;
   
   // App state
   appId: string | null;
@@ -30,6 +32,9 @@ interface BuilderState {
   chatInputValue: string;
   isChatExpanded: boolean;
   
+  // Error handling
+  lastError: string | null;
+  
   // Actions
   setAppId: (id: string) => void;
   setAppName: (name: string) => void;
@@ -37,6 +42,8 @@ interface BuilderState {
   
   addMessage: (message: Omit<ChatMessage, 'id' | 'created_at'>) => void;
   setIsGenerating: (generating: boolean) => void;
+  setGenerationProgress: (progress: number, message: string) => void;
+  setLastError: (error: string | null) => void;
   clearMessages: () => void;
   
   addScreen: (screen: AppScreen) => void;
@@ -55,6 +62,11 @@ interface BuilderState {
   
   // Generate app
   generateApp: (prompt: string) => Promise<void>;
+  retryGeneration: () => Promise<void>;
+  
+  // State persistence
+  saveState: () => void;
+  loadState: () => void;
 }
 
 // Mock data for demo
@@ -257,6 +269,8 @@ export const useBuilderStore = create<BuilderState>()(
       // Initial state
       messages: [],
       isGenerating: false,
+      generationProgress: 0,
+      generationMessage: '',
       
       appId: null,
       appName: 'My New App',
@@ -270,6 +284,8 @@ export const useBuilderStore = create<BuilderState>()(
       
       chatInputValue: '',
       isChatExpanded: false,
+      
+      lastError: null,
       
       // Actions
       setAppId: (id) => set({ appId: id }),
@@ -286,6 +302,13 @@ export const useBuilderStore = create<BuilderState>()(
       },
       
       setIsGenerating: (generating) => set({ isGenerating: generating }),
+      
+      setGenerationProgress: (progress, message) => set({ 
+        generationProgress: progress,
+        generationMessage: message 
+      }),
+      
+      setLastError: (error) => set({ lastError: error }),
       
       clearMessages: () => set({ messages: [] }),
       
@@ -319,11 +342,27 @@ export const useBuilderStore = create<BuilderState>()(
         currentScreen: 0,
       }),
       
-      // Generate app (real API implementation)
+      // Generate app with streaming and contextual updates
       generateApp: async (prompt) => {
-        const { addMessage, setIsGenerating, clearScreens, addScreen, setAppName, setAppDescription, appId } = get();
+        const { 
+          addMessage, 
+          setIsGenerating, 
+          setGenerationProgress, 
+          setLastError,
+          clearScreens, 
+          addScreen, 
+          updateScreen,
+          setAppName, 
+          setAppDescription, 
+          appId, 
+          messages,
+          screens,
+          saveState
+        } = get();
         
         setIsGenerating(true);
+        setGenerationProgress(0, 'Starting generation...');
+        setLastError(null);
         
         // Add user message
         addMessage({
@@ -335,11 +374,19 @@ export const useBuilderStore = create<BuilderState>()(
           model: null,
         });
 
-        // Add AI response message first
+        // Determine if this is an update or initial generation
+        const isUpdate = screens.length > 0;
+        const mode = isUpdate ? 'update' : 'initial';
+
+        // Add AI response message
+        const aiResponseContent = isUpdate 
+          ? `I'll update your app based on your request. Let me modify the relevant screens while maintaining consistency across the app.`
+          : `I'll build that for you! Creating a ${prompt.toLowerCase()} with modern design and functionality. This will include user interface, data management, and responsive design.`;
+          
         addMessage({
           app_id: appId || 'new-app',
           role: 'assistant',
-          content: `I'll build that for you! Creating a ${prompt.toLowerCase()} with modern design and functionality. This will include user interface, data management, and responsive design.`,
+          content: aiResponseContent,
           version_number: 1,
           tokens_used: 150,
           model: 'gpt-4o',
@@ -349,21 +396,27 @@ export const useBuilderStore = create<BuilderState>()(
           // For demo app, use mock data but still call API for new apps
           if (appId === 'demo') {
             // Keep demo behavior for demo app
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            for (let i = 0; i < 3; i++) {
+              setGenerationProgress((i + 1) * 30, `Generating screen ${i + 1} of 3...`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
             
-            addScreen({
-              name: 'Home',
-              html: `
-                <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
-                  <h1 style="text-align: center; font-size: 28px; margin-bottom: 30px;">Your App</h1>
-                  <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
-                    <p style="margin: 0; text-align: center;">Welcome to your new app! This is a generated screen based on your prompt: "${prompt}"</p>
+            if (!isUpdate) {
+              clearScreens();
+              addScreen({
+                name: 'Home',
+                html: `
+                  <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                    <h1 style="text-align: center; font-size: 28px; margin-bottom: 30px;">Your App</h1>
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
+                      <p style="margin: 0; text-align: center;">Welcome to your new app! This is a generated screen based on your prompt: "${prompt}"</p>
+                    </div>
                   </div>
-                </div>
-              `
-            });
+                `
+              });
+            }
           } else {
-            // Make real API call for non-demo apps
+            // Make streaming API call
             const response = await fetch('/api/generate', {
               method: 'POST',
               headers: {
@@ -372,6 +425,9 @@ export const useBuilderStore = create<BuilderState>()(
               body: JSON.stringify({
                 prompt,
                 appId: appId || 'new-app',
+                messages: messages.slice(-10), // Last 10 messages for context
+                currentScreens: isUpdate ? screens.map(s => ({ name: s.name, html: s.html })) : undefined,
+                mode,
                 category: 'custom', // TODO: get from app data
               }),
             });
@@ -380,28 +436,69 @@ export const useBuilderStore = create<BuilderState>()(
               throw new Error(`API call failed: ${response.status}`);
             }
 
-            const result = await response.json();
-            
-            if (!result.success) {
-              throw new Error(result.message || 'Failed to generate app');
+            // Handle streaming response
+            const reader = response.body?.getReader();
+            if (!reader) {
+              throw new Error('Response body is not readable');
             }
 
-            // Clear existing screens and add new ones
-            clearScreens();
-            
-            // Set app metadata
-            if (result.appName) {
-              setAppName(result.appName);
-            }
-            if (result.description) {
-              setAppDescription(result.description);
-            }
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-            // Add all screens from API response
-            if (result.screens && Array.isArray(result.screens)) {
-              result.screens.forEach((screen: { name: string; html: string }) => {
-                addScreen(screen);
-              });
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop() || '';
+                
+                for (const line of lines) {
+                  if (line.startsWith('data: ')) {
+                    try {
+                      const data = JSON.parse(line.slice(6));
+                      
+                      if (data.type === 'progress') {
+                        setGenerationProgress(data.progress, data.message);
+                      } else if (data.type === 'complete') {
+                        // Handle completion
+                        if (!isUpdate) {
+                          clearScreens();
+                        }
+                        
+                        // Set app metadata
+                        if (data.appName) {
+                          setAppName(data.appName);
+                        }
+                        if (data.description) {
+                          setAppDescription(data.description);
+                        }
+
+                        // Add/update screens with diff detection
+                        if (data.screens && Array.isArray(data.screens)) {
+                          data.screens.forEach((newScreen: { name: string; html: string }, index: number) => {
+                            if (isUpdate && screens[index]) {
+                              // Update mode: compare and update only if changed
+                              if (screens[index].html !== newScreen.html) {
+                                updateScreen(index, { ...newScreen, isActive: true });
+                              }
+                            } else {
+                              // Initial mode: add new screen
+                              addScreen(newScreen);
+                            }
+                          });
+                        }
+                      }
+                    } catch (parseError) {
+                      console.error('Failed to parse streaming data:', parseError);
+                    }
+                  }
+                }
+              }
+            } finally {
+              reader.releaseLock();
             }
           }
           
@@ -409,44 +506,116 @@ export const useBuilderStore = create<BuilderState>()(
           addMessage({
             app_id: appId || 'new-app',
             role: 'system',
-            content: 'App generated successfully! Your app is ready with multiple screens.',
+            content: isUpdate 
+              ? 'App updated successfully! Your changes have been applied.'
+              : 'App generated successfully! Your app is ready with multiple screens.',
             version_number: 1,
             tokens_used: null,
             model: null,
           });
 
-          // Set current screen to first screen
-          set({ currentScreen: 0 });
+          // Set current screen to first screen if initial generation
+          if (!isUpdate) {
+            set({ currentScreen: 0 });
+          }
+          
+          // Save state to localStorage
+          saveState();
           
         } catch (error) {
           console.error('API generation error:', error);
+          
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          setLastError(errorMessage);
           
           // Add error message
           addMessage({
             app_id: appId || 'new-app',
             role: 'system',
-            content: 'Failed to generate app. Please try again or contact support.',
+            content: `Failed to generate app: ${errorMessage}. You can try again or contact support.`,
             version_number: 1,
             tokens_used: null,
             model: null,
           });
           
-          // Fallback: add a simple screen so user isn't left with nothing
-          addScreen({
-            name: 'Home',
-            html: `
-              <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center;">
-                <h1 style="font-size: 28px; margin-bottom: 30px;">Your App</h1>
-                <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
-                  <p style="margin: 0;">Unable to generate custom app at this time. Please try again later.</p>
-                  <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.7;">Your prompt: "${prompt}"</p>
+          // For initial generation, still provide a fallback screen
+          if (!isUpdate) {
+            addScreen({
+              name: 'Home',
+              html: `
+                <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center;">
+                  <h1 style="font-size: 28px; margin-bottom: 30px;">Your App</h1>
+                  <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
+                    <p style="margin: 0;">Unable to generate app at this time. Please try again later.</p>
+                    <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.7;">Your prompt: "${prompt}"</p>
+                    <button style="margin-top: 15px; padding: 10px 20px; background: #4CAF50; border: none; color: white; border-radius: 8px; cursor: pointer;" onclick="window.parent.postMessage({type: 'retry'}, '*')">Retry</button>
+                  </div>
                 </div>
-              </div>
-            `
-          });
+              `
+            });
+          }
         }
         
         setIsGenerating(false);
+        setGenerationProgress(100, 'Complete!');
+      },
+      
+      // Retry generation with the last user message
+      retryGeneration: async () => {
+        const { messages, generateApp } = get();
+        const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+        if (lastUserMessage) {
+          await generateApp(lastUserMessage.content);
+        }
+      },
+      
+      // Save state to localStorage
+      saveState: () => {
+        const { appId, appName, appDescription, screens, messages } = get();
+        if (appId && appId !== 'demo') {
+          const state = {
+            appName,
+            appDescription,
+            screens,
+            messages,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(`appforge_${appId}`, JSON.stringify(state));
+        }
+      },
+      
+      // Load state from localStorage
+      loadState: () => {
+        const { appId, setAppName, setAppDescription, clearScreens, addScreen, clearMessages, addMessage } = get();
+        if (appId && appId !== 'demo') {
+          const stored = localStorage.getItem(`appforge_${appId}`);
+          if (stored) {
+            try {
+              const state = JSON.parse(stored);
+              setAppName(state.appName || 'My App');
+              setAppDescription(state.appDescription || '');
+              
+              clearScreens();
+              if (state.screens) {
+                state.screens.forEach((screen: AppScreen) => addScreen(screen));
+              }
+              
+              clearMessages();
+              if (state.messages) {
+                state.messages.forEach((message: ChatMessage) => addMessage({
+                  app_id: message.app_id,
+                  role: message.role,
+                  content: message.content,
+                  version_number: message.version_number,
+                  tokens_used: message.tokens_used,
+                  model: message.model,
+                }));
+              }
+            } catch (error) {
+              console.error('Failed to load saved state:', error);
+            }
+          }
+        }
       },
     }),
     {

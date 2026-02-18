@@ -12,18 +12,26 @@ import type { ChatMessage as ChatMessageType } from "@/types/app";
 interface ChatPanelProps {
   messages: ChatMessageType[];
   isGenerating: boolean;
+  generationProgress: number;
+  generationMessage: string;
+  lastError: string | null;
   chatInputValue: string;
   onChatInputChange: (value: string) => void;
   onSendMessage: () => void;
+  onRetry: () => void;
   isExpanded: boolean;
 }
 
 export function ChatPanel({ 
   messages, 
   isGenerating, 
+  generationProgress,
+  generationMessage,
+  lastError,
   chatInputValue, 
   onChatInputChange, 
   onSendMessage,
+  onRetry,
   isExpanded 
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -44,6 +52,32 @@ export function ChatPanel({
       <div className="flex flex-col h-full">
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Welcome message when chat is empty */}
+          {messages.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-8"
+            >
+              <div className="text-4xl mb-4">👋</div>
+              <h3 className="text-lg font-semibold mb-2 text-white">Hi! Describe the app you want to build</h3>
+              <p className="text-white/60 mb-6">I'll create it for you with modern design and functionality</p>
+              
+              {/* Suggested prompts */}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {['Recipe app', 'Fitness tracker', 'Todo list', 'E-commerce store'].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => onChatInputChange(suggestion)}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-sm text-white/80 hover:text-white transition-all duration-200 backdrop-blur-sm"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           <AnimatePresence>
             {messages.map((message, index) => (
               <ChatMessage 
@@ -85,10 +119,47 @@ export function ChatPanel({
             >
               <Card className="p-4 glass">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="spinner" />
-                  <span className="text-sm text-white">Building your app...</span>
+                  <div className="text-2xl">🔨</div>
+                  <span className="text-sm text-white">{generationMessage || 'Building your app...'}</span>
                 </div>
-                <Progress value={65} animated className="h-2" />
+                <Progress value={generationProgress} animated className="h-2" />
+                <div className="text-xs text-white/60 mt-2">{Math.round(generationProgress)}% complete</div>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Completion Message */}
+          {!isGenerating && messages.length > 0 && messages[messages.length - 1]?.role === 'system' && !lastError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-4"
+            >
+              <div className="text-2xl mb-2">✅</div>
+              <p className="text-white/80 text-sm">Your app is ready! You can now edit any screen by chatting with me.</p>
+            </motion.div>
+          )}
+
+          {/* Error State with Retry */}
+          {lastError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="px-4"
+            >
+              <Card className="p-4 glass border-red-500/30">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="text-2xl">⚠️</div>
+                  <div className="flex-1">
+                    <p className="text-sm text-red-300 mb-2">Generation failed: {lastError}</p>
+                    <button
+                      onClick={onRetry}
+                      className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </div>
               </Card>
             </motion.div>
           )}
