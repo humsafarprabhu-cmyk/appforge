@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -38,10 +39,12 @@ const staggerContainer = {
 };
 
 export function DashboardClient() {
+  const router = useRouter();
   const { 
     apps, 
     stats, 
     isLoading, 
+    hasInitialized,
     createApp, 
     deleteApp, 
     initializeDemoData,
@@ -54,14 +57,14 @@ export function DashboardClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Initialize demo data on mount
+  // Initialize demo data on mount if not already initialized
   useEffect(() => {
-    if (apps.length === 0) {
+    if (!hasInitialized) {
       initializeDemoData();
     } else {
       refreshStats();
     }
-  }, []);
+  }, [hasInitialized, initializeDemoData, refreshStats]);
 
   const filteredApps = apps.filter(app => {
     const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,8 +85,8 @@ export function DashboardClient() {
       toast.success('App created successfully!');
       setIsCreateModalOpen(false);
       
-      // Redirect to builder
-      window.location.href = `/builder/${app.id}`;
+      // Redirect to builder using Next.js router
+      router.push(`/builder/${app.id}`);
     } catch (error) {
       toast.error('Failed to create app');
       console.error('Create app error:', error);

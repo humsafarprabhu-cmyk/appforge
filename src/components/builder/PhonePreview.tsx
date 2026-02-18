@@ -25,17 +25,22 @@ export function PhonePreview({ screens, currentScreen, deviceFrame, onScreenChan
   const currentFrameConfig = getDeviceFrameConfig();
 
   return (
-    <div className="flex-1 flex items-center justify-center">
+    <div className="flex-1 flex items-center justify-center p-4">
       <motion.div
         key={deviceFrame}
-        className="relative"
+        className="relative phone-container"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
         style={{
           width: currentFrameConfig.width + (currentFrameConfig.bezel * 2),
           height: currentFrameConfig.height + (currentFrameConfig.bezel * 2),
-          maxHeight: 'calc(100vh - 200px)',
+          maxHeight: 'calc(100vh - 280px)',
+          maxWidth: '100%',
+          aspectRatio: `${currentFrameConfig.width} / ${currentFrameConfig.height}`,
+          transform: 'scale(min(1, (100vw - 120px) / ' + (currentFrameConfig.width + (currentFrameConfig.bezel * 2)) + ', (100vh - 320px) / ' + (currentFrameConfig.height + (currentFrameConfig.bezel * 2)) + '))',
+          transformOrigin: 'center center',
+          filter: 'drop-shadow(0 20px 40px rgba(99, 102, 241, 0.15))',
         }}
       >
         {/* Phone Frame */}

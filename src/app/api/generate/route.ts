@@ -26,51 +26,64 @@ interface GenerateResponse {
 // System prompt for AI generation
 const SYSTEM_PROMPT = `You are an expert mobile app developer specialized in creating modern, responsive web-based mobile applications. 
 
-Generate complete HTML pages for mobile app screens based on user requirements. Each screen should:
+Generate EXACTLY 5 complete HTML pages for mobile app screens based on user requirements. Each screen MUST be:
 
-1. Use inline CSS for styling (no external stylesheets except CDNs)
-2. Include Tailwind CSS via CDN: https://cdn.tailwindcss.com
-3. Use dark mode design (#0a0a0f background, glass cards with rgba(255,255,255,0.03) bg)
-4. Include modern gradients and glass morphism effects
-5. Use Inter font from Google Fonts CDN
-6. Include Lucide icons via CDN: https://unpkg.com/lucide@latest/dist/umd/lucide.js
-7. Be mobile-first and responsive
-8. Include smooth CSS animations and transitions
-9. Use proper semantic HTML structure
-10. Be self-contained with no external dependencies except CDNs
-11. MINIMUM 5 screens per app
-12. Each screen should be 150+ lines of HTML with rich content
+1. A complete HTML5 document starting with <!DOCTYPE html>
+2. Include proper <head> section with meta tags and title
+3. Include <body> with full app content
+4. MUST include: <script src="https://cdn.tailwindcss.com"></script> in head
+5. MUST include Inter font: <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+6. Use dark theme colors: bg-[#0a0a0f] or bg-gray-950
+7. Glass cards: bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl
+8. Gradients on headers and CTAs: bg-gradient-to-r from-blue-500 to-purple-600
+9. Each screen MINIMUM 200+ lines of HTML with rich, interactive content
+10. EXACTLY 5 screens with these names: Home, Feature1, Feature2, Profile, Settings
+11. Include bottom navigation bar on every screen
+12. Include status bar at top with time and battery icons
+13. Interactive elements like buttons, inputs, toggles with proper hover/focus states
+14. Use modern CSS animations and transitions
+15. Mobile-first responsive design
+16. Self-contained with no external dependencies except CDNs mentioned
 
-Respond with JSON containing:
+The 5 screens must be:
+- Home: Main dashboard/overview screen
+- Feature1: Primary feature of the app
+- Feature2: Secondary feature of the app  
+- Profile: User profile/account screen
+- Settings: App settings and configuration
+
+Each screen should feel like a real, polished mobile app with attention to detail, proper spacing, beautiful typography, and smooth interactions.
+
+Respond ONLY with valid JSON in this exact format:
 {
-  "screens": [{"name": "Screen Name", "html": "complete HTML"}],
+  "screens": [
+    {"name": "Home", "html": "complete HTML5 document"},
+    {"name": "Feature1", "html": "complete HTML5 document"},
+    {"name": "Feature2", "html": "complete HTML5 document"},
+    {"name": "Profile", "html": "complete HTML5 document"},
+    {"name": "Settings", "html": "complete HTML5 document"}
+  ],
   "appName": "Generated App Name",
   "description": "Brief app description"
-}
+}`;
 
-Make the design beautiful, modern, and user-friendly. Use gradients, backdrop-blur, and contemporary UI patterns. Each screen should be feature-rich and interactive.`;
-
-// Mock templates for fallback
-const APP_TEMPLATES = {
-  fitness: {
-    screens: [
-      {
-        name: 'Dashboard',
-        html: `<!DOCTYPE html>
+// Generate HTML template for a given screen
+function generateScreenTemplate(category: string, screenType: string): string {
+  const baseTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitTracker Dashboard</title>
+    <title>{{TITLE}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-bg { {{GRADIENT}} }
+        .status-bar { position: fixed; top: 0; left: 0; right: 0; height: 44px; background: rgba(0,0,0,0.9); z-index: 50; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 50; }
+        .content { padding-top: 60px; padding-bottom: 96px; }
         .float { animation: float 6s ease-in-out infinite; }
         @keyframes float {
             0%, 100% { transform: translateY(0px); }
@@ -78,158 +91,278 @@ const APP_TEMPLATES = {
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <div class="gradient-bg min-h-screen p-6">
-        <div class="max-w-md mx-auto">
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold mb-2">FitTracker</h1>
-                <p class="text-white/80">Welcome back, Alex!</p>
-            </div>
-            
-            <!-- Progress Card -->
-            <div class="glass rounded-3xl p-6 mb-6 float">
-                <h3 class="text-xl font-semibold mb-4">Today's Progress</h3>
-                <div class="space-y-4">
-                    <div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span>Steps</span>
-                            <span>8,543 / 10,000</span>
-                        </div>
-                        <div class="h-3 bg-white/20 rounded-full overflow-hidden">
-                            <div class="h-full w-4/5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="flex justify-between text-sm mb-2">
-                            <span>Calories</span>
-                            <span>1,240 / 2,000</span>
-                        </div>
-                        <div class="h-3 bg-white/20 rounded-full overflow-hidden">
-                            <div class="h-full w-3/5 bg-gradient-to-r from-orange-400 to-pink-500 rounded-full"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="glass rounded-3xl p-6 mb-6">
-                <h3 class="text-xl font-semibold mb-4">Quick Actions</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <button class="bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-2xl font-medium hover:scale-105 transition-transform">
-                        Start Workout
-                    </button>
-                    <button class="bg-gradient-to-r from-orange-500 to-red-500 p-4 rounded-2xl font-medium hover:scale-105 transition-transform">
-                        Log Food
-                    </button>
-                    <button class="bg-gradient-to-r from-green-500 to-teal-500 p-4 rounded-2xl font-medium hover:scale-105 transition-transform">
-                        View Stats
-                    </button>
-                    <button class="bg-gradient-to-r from-purple-500 to-pink-500 p-4 rounded-2xl font-medium hover:scale-105 transition-transform">
-                        Profile
-                    </button>
-                </div>
-            </div>
-
-            <!-- Weekly Summary -->
-            <div class="glass rounded-3xl p-6">
-                <h3 class="text-xl font-semibold mb-4">This Week</h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm">Workouts completed</span>
-                        <span class="font-semibold">5 of 6</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm">Average heart rate</span>
-                        <span class="font-semibold">142 bpm</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm">Total distance</span>
-                        <span class="font-semibold">23.4 km</span>
-                    </div>
-                </div>
+<body class="bg-[#0a0a0f] text-white min-h-screen">
+    <!-- Status Bar -->
+    <div class="status-bar flex items-center justify-between px-6 text-white text-sm">
+        <div>9:41</div>
+        <div class="flex items-center gap-1">
+            <div class="w-4 h-2 bg-white rounded-sm opacity-60"></div>
+            <div class="w-6 h-3 border border-white rounded-sm opacity-80">
+                <div class="w-4 h-2 bg-white rounded-sm ml-0.5 mt-0.5"></div>
             </div>
         </div>
     </div>
-</body>
-</html>`
-      },
-      {
-        name: 'Workouts',
-        html: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workouts</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        .gradient-bg { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    </style>
-</head>
-<body class="bg-gray-900 text-white">
-    <div class="gradient-bg min-h-screen p-6">
-        <div class="max-w-md mx-auto">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold mb-2">Workouts</h1>
-                <p class="text-white/80">Choose your training</p>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="glass rounded-3xl p-6 hover:scale-105 transition-transform cursor-pointer">
-                    <div class="flex items-center mb-3">
-                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mr-4">
-                            💪
-                        </div>
-                        <div>
-                            <h3 class="font-semibold">Strength Training</h3>
-                            <p class="text-sm text-white/70">45 min • Upper body</p>
-                        </div>
-                    </div>
-                    <p class="text-sm text-white/80">Build muscle with weights and resistance training</p>
-                </div>
 
-                <div class="glass rounded-3xl p-6 hover:scale-105 transition-transform cursor-pointer">
-                    <div class="flex items-center mb-3">
-                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mr-4">
-                            🏃
-                        </div>
-                        <div>
-                            <h3 class="font-semibold">Cardio</h3>
-                            <p class="text-sm text-white/70">30 min • High intensity</p>
-                        </div>
-                    </div>
-                    <p class="text-sm text-white/80">Improve endurance and burn calories</p>
-                </div>
-
-                <div class="glass rounded-3xl p-6 hover:scale-105 transition-transform cursor-pointer">
-                    <div class="flex items-center mb-3">
-                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mr-4">
-                            🧘
-                        </div>
-                        <div>
-                            <h3 class="font-semibold">Yoga</h3>
-                            <p class="text-sm text-white/70">60 min • Relaxing</p>
-                        </div>
-                    </div>
-                    <p class="text-sm text-white/80">Flexibility and mindfulness practice</p>
-                </div>
-            </div>
-
-            <div class="mt-8">
-                <button class="w-full bg-gradient-to-r from-green-500 to-teal-500 p-4 rounded-2xl font-semibold text-lg hover:scale-105 transition-transform">
-                    Start Custom Workout
-                </button>
-            </div>
+    <!-- Main Content -->
+    <div class="gradient-bg min-h-screen">
+        <div class="content max-w-md mx-auto p-6">
+            {{CONTENT}}
         </div>
     </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav flex items-center justify-around px-4">
+        {{NAV}}
+    </div>
 </body>
-</html>`
-      }
-    ]
+</html>`;
+
+  // Define content and navigation based on category and screen type
+  const content = getScreenContent(category, screenType);
+  const gradient = getGradient(category);
+  const title = getTitle(category, screenType);
+  const nav = getBottomNav(category);
+
+  return baseTemplate
+    .replace('{{TITLE}}', title)
+    .replace('{{GRADIENT}}', gradient)
+    .replace('{{CONTENT}}', content)
+    .replace('{{NAV}}', nav);
+}
+
+function getGradient(category: string): string {
+  const gradients = {
+    fitness: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);',
+    food: 'background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);',
+    education: 'background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);',
+    productivity: 'background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);',
+    ecommerce: 'background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);',
+    social: 'background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);'
+  };
+  return gradients[category as keyof typeof gradients] || gradients.fitness;
+}
+
+function getTitle(category: string, screenType: string): string {
+  const titles = {
+    fitness: { Home: 'FitTracker', Feature1: 'Workouts', Feature2: 'Progress', Profile: 'Profile', Settings: 'Settings' },
+    food: { Home: 'RecipeBook', Feature1: 'Recipes', Feature2: 'Meal Planner', Profile: 'Profile', Settings: 'Settings' },
+    education: { Home: 'StudyBuddy', Feature1: 'Courses', Feature2: 'Flashcards', Profile: 'Profile', Settings: 'Settings' },
+    productivity: { Home: 'TaskMaster', Feature1: 'Tasks', Feature2: 'Calendar', Profile: 'Profile', Settings: 'Settings' },
+    ecommerce: { Home: 'ShopApp', Feature1: 'Products', Feature2: 'Cart', Profile: 'Profile', Settings: 'Settings' },
+    social: { Home: 'ConnectMe', Feature1: 'Posts', Feature2: 'Messages', Profile: 'Profile', Settings: 'Settings' }
+  };
+  return titles[category as keyof typeof titles]?.[screenType as keyof (typeof titles)[keyof typeof titles]] || 'App';
+}
+
+function getBottomNav(category: string): string {
+  const icons = {
+    fitness: ['🏠', '💪', '📊', '👤', '⚙️'],
+    food: ['🏠', '🍳', '📅', '👤', '⚙️'],
+    education: ['🏠', '📚', '📋', '👤', '⚙️'],
+    productivity: ['🏠', '✅', '📅', '👤', '⚙️'],
+    ecommerce: ['🏠', '🛍️', '🛒', '👤', '⚙️'],
+    social: ['🏠', '📝', '💬', '👤', '⚙️']
+  };
+  
+  const categoryIcons = icons[category as keyof typeof icons] || icons.fitness;
+  
+  return categoryIcons.map((icon, index) => 
+    `<button class="flex flex-col items-center p-2 text-white/60 hover:text-white transition-colors">
+      <div class="text-2xl mb-1">${icon}</div>
+      <div class="text-xs"></div>
+    </button>`
+  ).join('');
+}
+
+function getScreenContent(category: string, screenType: string): string {
+  if (screenType === 'Home') {
+    return `
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-3">${getTitle(category, 'Home')}</h1>
+        <p class="text-white/80">Welcome back!</p>
+      </div>
+      
+      <div class="glass rounded-3xl p-6 mb-6 float">
+        <h3 class="text-xl font-semibold mb-4">Today's Overview</h3>
+        <div class="space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-white/80">Activity</span>
+            <span class="font-semibold">85%</span>
+          </div>
+          <div class="h-2 bg-white/20 rounded-full overflow-hidden">
+            <div class="h-full w-4/5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="glass rounded-3xl p-4 text-center hover:scale-105 transition-transform">
+          <div class="text-3xl mb-2">📈</div>
+          <div class="font-semibold">Analytics</div>
+        </div>
+        <div class="glass rounded-3xl p-4 text-center hover:scale-105 transition-transform">
+          <div class="text-3xl mb-2">🎯</div>
+          <div class="font-semibold">Goals</div>
+        </div>
+      </div>
+
+      <button class="w-full bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-2xl font-semibold text-lg hover:scale-105 transition-transform">
+        Get Started
+      </button>
+    `;
+  }
+  
+  if (screenType === 'Profile') {
+    return `
+      <div class="text-center mb-8">
+        <div class="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl">
+          👤
+        </div>
+        <h2 class="text-2xl font-bold mb-2">Alex Johnson</h2>
+        <p class="text-white/70">Premium Member</p>
+      </div>
+
+      <div class="glass rounded-3xl p-6 mb-6">
+        <h3 class="text-xl font-semibold mb-4">Statistics</h3>
+        <div class="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div class="text-2xl font-bold">124</div>
+            <div class="text-sm text-white/70">Activities</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold">89%</div>
+            <div class="text-sm text-white/70">Success Rate</div>
+          </div>
+          <div>
+            <div class="text-2xl font-bold">15</div>
+            <div class="text-sm text-white/70">Streak</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="glass rounded-2xl p-4 flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
+              ✏️
+            </div>
+            <span>Edit Profile</span>
+          </div>
+          <div class="text-white/60">›</div>
+        </div>
+        
+        <div class="glass rounded-2xl p-4 flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mr-3">
+              🏆
+            </div>
+            <span>Achievements</span>
+          </div>
+          <div class="text-white/60">›</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (screenType === 'Settings') {
+    return `
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-3">Settings</h1>
+        <p class="text-white/70">Customize your app experience</p>
+      </div>
+
+      <div class="space-y-6">
+        <div class="glass rounded-3xl p-6">
+          <h3 class="text-lg font-semibold mb-4">Preferences</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span>Dark Mode</span>
+              <div class="w-12 h-6 bg-green-500 rounded-full flex items-center px-1">
+                <div class="w-4 h-4 bg-white rounded-full ml-auto"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Notifications</span>
+              <div class="w-12 h-6 bg-gray-600 rounded-full flex items-center px-1">
+                <div class="w-4 h-4 bg-white rounded-full"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6">
+          <h3 class="text-lg font-semibold mb-4">Account</h3>
+          <div class="space-y-3">
+            <button class="w-full text-left p-3 hover:bg-white/10 rounded-xl transition-colors">
+              Privacy Policy
+            </button>
+            <button class="w-full text-left p-3 hover:bg-white/10 rounded-xl transition-colors">
+              Terms of Service
+            </button>
+            <button class="w-full text-left p-3 hover:bg-white/10 rounded-xl transition-colors text-red-400">
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Feature1 and Feature2 screens - category specific
+  return `
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-3">${getTitle(category, screenType)}</h1>
+      <p class="text-white/70">Discover amazing features</p>
+    </div>
+
+    <div class="space-y-4 mb-8">
+      ${Array(4).fill(0).map((_, i) => `
+        <div class="glass rounded-3xl p-6 hover:scale-105 transition-transform cursor-pointer">
+          <div class="flex items-center mb-3">
+            <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mr-4">
+              ${['🎯', '⭐', '🚀', '💎'][i]}
+            </div>
+            <div>
+              <h3 class="font-semibold">Feature ${i + 1}</h3>
+              <p class="text-sm text-white/70">Amazing functionality</p>
+            </div>
+          </div>
+          <p class="text-sm text-white/80">Detailed description of this feature and its benefits</p>
+        </div>
+      `).join('')}
+    </div>
+
+    <button class="w-full bg-gradient-to-r from-blue-500 to-purple-600 p-4 rounded-2xl font-semibold text-lg hover:scale-105 transition-transform">
+      Explore More
+    </button>
+  `;
+}
+
+// Mock templates with complete apps
+const APP_TEMPLATES = {
+  fitness: {
+    appName: 'FitTracker',
+    description: 'Complete fitness tracking app with workout logging, progress charts, and social features'
+  },
+  food: {
+    appName: 'RecipeBook',
+    description: 'Discover, save, and share delicious recipes with meal planning features'
+  },
+  education: {
+    appName: 'StudyBuddy',
+    description: 'Interactive learning platform with courses, flashcards, and progress tracking'
+  },
+  productivity: {
+    appName: 'TaskMaster',
+    description: 'Advanced productivity app with tasks, calendar, and notes management'
+  },
+  ecommerce: {
+    appName: 'ShopApp',
+    description: 'Modern e-commerce mobile app with products, cart, and order management'
+  },
+  social: {
+    appName: 'ConnectMe',
+    description: 'Social networking app with posts, messaging, and community features'
   }
 };
 
@@ -261,17 +394,27 @@ export async function POST(request: NextRequest) {
               content: `Create a mobile app: ${prompt}${category ? ` (Category: ${category})` : ''}${currentCode ? `\nCurrent code context: ${currentCode.slice(0, 1000)}...` : ''}` 
             },
           ],
-          max_tokens: MAX_CODE_TOKENS || 4000,
+          max_tokens: MAX_CODE_TOKENS || 16000,
           temperature: 0.7,
+          response_format: { type: "json_object" },
         });
 
-        const result = JSON.parse(completion.choices[0].message?.content || '{}');
+        const responseContent = completion.choices[0].message?.content || '{}';
         
-        if (result.screens && Array.isArray(result.screens)) {
-          return NextResponse.json({
-            ...result,
-            success: true
-          });
+        try {
+          const result = JSON.parse(responseContent);
+          
+          if (result.screens && Array.isArray(result.screens) && result.screens.length === 5) {
+            return NextResponse.json({
+              ...result,
+              success: true
+            });
+          } else {
+            console.warn('OpenAI response missing required screens array or incorrect length');
+          }
+        } catch (parseError) {
+          console.error('Failed to parse OpenAI response JSON:', parseError);
+          console.log('Raw response:', responseContent.slice(0, 500));
         }
       } catch (openaiError) {
         console.error('OpenAI API error:', openaiError);
@@ -285,10 +428,19 @@ export async function POST(request: NextRequest) {
     const detectedCategory = detectCategory(prompt, category);
     const template = APP_TEMPLATES[detectedCategory as keyof typeof APP_TEMPLATES] || APP_TEMPLATES.fitness;
     
+    // Generate all 5 screens using the template system
+    const screens = [
+      { name: 'Home', html: generateScreenTemplate(detectedCategory, 'Home') },
+      { name: 'Feature1', html: generateScreenTemplate(detectedCategory, 'Feature1') },
+      { name: 'Feature2', html: generateScreenTemplate(detectedCategory, 'Feature2') },
+      { name: 'Profile', html: generateScreenTemplate(detectedCategory, 'Profile') },
+      { name: 'Settings', html: generateScreenTemplate(detectedCategory, 'Settings') }
+    ];
+    
     const response: GenerateResponse = {
-      screens: template.screens,
-      appName: appName || generateAppName(prompt),
-      description: generateDescription(prompt),
+      screens,
+      appName: appName || template.appName || generateAppName(prompt),
+      description: template.description || generateDescription(prompt),
       success: true
     };
 
@@ -317,8 +469,34 @@ function detectCategory(prompt: string, explicitCategory?: string): string {
 
   const lowerPrompt = prompt.toLowerCase();
   
-  if (lowerPrompt.includes('fitness') || lowerPrompt.includes('workout') || lowerPrompt.includes('health') || lowerPrompt.includes('exercise')) {
+  // Fitness
+  if (lowerPrompt.includes('fitness') || lowerPrompt.includes('workout') || lowerPrompt.includes('health') || lowerPrompt.includes('exercise') || lowerPrompt.includes('gym')) {
     return 'fitness';
+  }
+  
+  // Food
+  if (lowerPrompt.includes('food') || lowerPrompt.includes('recipe') || lowerPrompt.includes('cooking') || lowerPrompt.includes('meal') || lowerPrompt.includes('restaurant') || lowerPrompt.includes('kitchen')) {
+    return 'food';
+  }
+  
+  // Education
+  if (lowerPrompt.includes('education') || lowerPrompt.includes('learning') || lowerPrompt.includes('study') || lowerPrompt.includes('course') || lowerPrompt.includes('student') || lowerPrompt.includes('school')) {
+    return 'education';
+  }
+  
+  // Productivity
+  if (lowerPrompt.includes('task') || lowerPrompt.includes('todo') || lowerPrompt.includes('productivity') || lowerPrompt.includes('organize') || lowerPrompt.includes('calendar') || lowerPrompt.includes('note')) {
+    return 'productivity';
+  }
+  
+  // E-commerce
+  if (lowerPrompt.includes('shop') || lowerPrompt.includes('store') || lowerPrompt.includes('ecommerce') || lowerPrompt.includes('product') || lowerPrompt.includes('cart') || lowerPrompt.includes('buy')) {
+    return 'ecommerce';
+  }
+  
+  // Social
+  if (lowerPrompt.includes('social') || lowerPrompt.includes('chat') || lowerPrompt.includes('message') || lowerPrompt.includes('friends') || lowerPrompt.includes('community') || lowerPrompt.includes('post')) {
+    return 'social';
   }
   
   return 'fitness'; // Default fallback

@@ -6,6 +6,7 @@ interface AppStoreState {
   apps: App[];
   currentApp: App | null;
   isLoading: boolean;
+  hasInitialized: boolean;
   
   // Stats
   stats: {
@@ -143,6 +144,7 @@ export const useAppStore = create<AppStoreState>()(
         apps: [],
         currentApp: null,
         isLoading: false,
+        hasInitialized: false,
         stats: {
           totalApps: 0,
           totalBuilds: 0,
@@ -245,6 +247,7 @@ export const useAppStore = create<AppStoreState>()(
         initializeDemoData: () => {
           set({ 
             apps: DEMO_APPS,
+            hasInitialized: true,
             stats: {
               totalApps: DEMO_APPS.length,
               totalBuilds: DEMO_APPS.reduce((sum, app) => sum + app.current_version, 0),
@@ -267,10 +270,11 @@ export const useAppStore = create<AppStoreState>()(
       }),
       {
         name: 'app-store',
-        // Only persist apps and stats, not loading states
+        // Only persist apps, stats, and initialization flag, not loading states
         partialize: (state) => ({
           apps: state.apps,
           stats: state.stats,
+          hasInitialized: state.hasInitialized,
         }),
       }
     ),

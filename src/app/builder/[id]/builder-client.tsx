@@ -31,6 +31,7 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
     setDeviceFrame,
     setTheme,
     setChatInputValue,
+    setChatExpanded,
     initializeDemoData
   } = useBuilderStore();
 
@@ -71,54 +72,66 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Top Bar */}
+    <div className="h-screen flex flex-col bg-background">
+      {/* Top Bar - Fixed height */}
       <BuilderTopBar
         appName={appName}
         appVersion={screens.length}
         onAppNameChange={setAppName}
       />
 
-      {/* Main Content */}
-      <div className="flex w-full pt-20">
+      {/* Main Content - Flex row taking remaining height */}
+      <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Chat Interface */}
-        <ChatPanel
-          messages={messages}
-          isGenerating={isGenerating}
-          chatInputValue={chatInputValue}
-          onChatInputChange={setChatInputValue}
-          onSendMessage={handleSendMessage}
-          isExpanded={isChatExpanded}
-        />
+        <div className={`${isChatExpanded ? 'w-1/2' : 'w-2/5'} transition-all duration-300 md:flex ${isChatExpanded ? '' : 'hidden md:flex'}`}>
+          <ChatPanel
+            messages={messages}
+            isGenerating={isGenerating}
+            chatInputValue={chatInputValue}
+            onChatInputChange={setChatInputValue}
+            onSendMessage={handleSendMessage}
+            isExpanded={isChatExpanded}
+          />
+        </div>
 
         {/* Right Panel - Phone Preview */}
-        <div className={`flex-1 p-6 ${isChatExpanded ? 'w-1/2' : 'w-3/5'}`}>
-          <div className="flex flex-col h-full">
-            {/* Device Controls */}
-            <DeviceSelector
-              deviceFrame={deviceFrame}
-              theme={theme}
-              onDeviceChange={(device) => setDeviceFrame(device as any)}
-              onThemeChange={(theme) => setTheme(theme as any)}
-            />
+        <div className={`flex-1 flex flex-col ${!isChatExpanded ? 'w-full' : ''}`}>
+          {/* Device Controls */}
+          <DeviceSelector
+            deviceFrame={deviceFrame}
+            theme={theme}
+            onDeviceChange={(device) => setDeviceFrame(device as any)}
+            onThemeChange={(theme) => setTheme(theme as any)}
+          />
 
-            {/* Phone Preview */}
+          {/* Phone Preview */}
+          <div className="flex-1 flex items-center justify-center p-6">
             <PhonePreview
               screens={screens}
               currentScreen={currentScreen}
               deviceFrame={deviceFrame}
               onScreenChange={setCurrentScreen}
             />
-
-            {/* Action Bar */}
-            <ActionBar
-              screensCount={screens.length}
-              onQRCode={handleQRCode}
-              onDownload={handleDownload}
-              onPublish={handlePublish}
-            />
           </div>
+
+          {/* Action Bar */}
+          <ActionBar
+            screensCount={screens.length}
+            onQRCode={handleQRCode}
+            onDownload={handleDownload}
+            onPublish={handlePublish}
+          />
         </div>
+      </div>
+
+      {/* Mobile Tab Toggle - Only visible on small screens */}
+      <div className="md:hidden fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setChatExpanded(!isChatExpanded)}
+          className="bg-primary text-white p-3 rounded-full shadow-lg hover:scale-105 transition-transform"
+        >
+          {isChatExpanded ? '📱' : '💬'}
+        </button>
       </div>
     </div>
   );

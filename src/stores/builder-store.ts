@@ -319,28 +319,25 @@ export const useBuilderStore = create<BuilderState>()(
         currentScreen: 0,
       }),
       
-      // Generate app (mock implementation)
+      // Generate app (real API implementation)
       generateApp: async (prompt) => {
-        const { addMessage, setIsGenerating, addScreen } = get();
+        const { addMessage, setIsGenerating, clearScreens, addScreen, setAppName, setAppDescription, appId } = get();
         
         setIsGenerating(true);
         
         // Add user message
         addMessage({
-          app_id: get().appId || 'new-app',
+          app_id: appId || 'new-app',
           role: 'user',
           content: prompt,
           version_number: 1,
           tokens_used: null,
           model: null,
         });
-        
-        // Simulate AI response with delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Add AI response
+
+        // Add AI response message first
         addMessage({
-          app_id: get().appId || 'new-app',
+          app_id: appId || 'new-app',
           role: 'assistant',
           content: `I'll build that for you! Creating a ${prompt.toLowerCase()} with modern design and functionality. This will include user interface, data management, and responsive design.`,
           version_number: 1,
@@ -348,31 +345,106 @@ export const useBuilderStore = create<BuilderState>()(
           model: 'gpt-4o',
         });
         
-        // Simulate building
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Add a sample screen
-        addScreen({
-          name: 'Home',
-          html: `
-            <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
-              <h1 style="text-align: center; font-size: 28px; margin-bottom: 30px;">Your App</h1>
-              <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
-                <p style="margin: 0; text-align: center;">Welcome to your new app! This is a generated screen based on your prompt: "${prompt}"</p>
+        try {
+          // For demo app, use mock data but still call API for new apps
+          if (appId === 'demo') {
+            // Keep demo behavior for demo app
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            addScreen({
+              name: 'Home',
+              html: `
+                <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                  <h1 style="text-align: center; font-size: 28px; margin-bottom: 30px;">Your App</h1>
+                  <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
+                    <p style="margin: 0; text-align: center;">Welcome to your new app! This is a generated screen based on your prompt: "${prompt}"</p>
+                  </div>
+                </div>
+              `
+            });
+          } else {
+            // Make real API call for non-demo apps
+            const response = await fetch('/api/generate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                prompt,
+                appId: appId || 'new-app',
+                category: 'custom', // TODO: get from app data
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`API call failed: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (!result.success) {
+              throw new Error(result.message || 'Failed to generate app');
+            }
+
+            // Clear existing screens and add new ones
+            clearScreens();
+            
+            // Set app metadata
+            if (result.appName) {
+              setAppName(result.appName);
+            }
+            if (result.description) {
+              setAppDescription(result.description);
+            }
+
+            // Add all screens from API response
+            if (result.screens && Array.isArray(result.screens)) {
+              result.screens.forEach((screen: { name: string; html: string }) => {
+                addScreen(screen);
+              });
+            }
+          }
+          
+          // Add system success message
+          addMessage({
+            app_id: appId || 'new-app',
+            role: 'system',
+            content: 'App generated successfully! Your app is ready with multiple screens.',
+            version_number: 1,
+            tokens_used: null,
+            model: null,
+          });
+
+          // Set current screen to first screen
+          set({ currentScreen: 0 });
+          
+        } catch (error) {
+          console.error('API generation error:', error);
+          
+          // Add error message
+          addMessage({
+            app_id: appId || 'new-app',
+            role: 'system',
+            content: 'Failed to generate app. Please try again or contact support.',
+            version_number: 1,
+            tokens_used: null,
+            model: null,
+          });
+          
+          // Fallback: add a simple screen so user isn't left with nothing
+          addScreen({
+            name: 'Home',
+            html: `
+              <div style="padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center;">
+                <h1 style="font-size: 28px; margin-bottom: 30px;">Your App</h1>
+                <div style="background: rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
+                  <p style="margin: 0;">Unable to generate custom app at this time. Please try again later.</p>
+                  <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.7;">Your prompt: "${prompt}"</p>
+                </div>
               </div>
-            </div>
-          `
-        });
-        
-        // Add system message
-        addMessage({
-          app_id: get().appId || 'new-app',
-          role: 'system',
-          content: 'App generated successfully! Your app is ready with the first screen.',
-          version_number: 1,
-          tokens_used: null,
-          model: null,
-        });
+            `
+          });
+        }
         
         setIsGenerating(false);
       },
