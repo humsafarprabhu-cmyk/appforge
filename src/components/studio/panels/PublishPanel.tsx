@@ -2,7 +2,7 @@
 
 import { Globe, Smartphone, FileArchive, Rocket, ExternalLink, Check, Lock } from "lucide-react";
 import { toast } from "sonner";
-import { exportAsZip, exportAsPWA } from "@/lib/export";
+import { exportAsZip, exportAsPWA, exportAsExpo } from "@/lib/export";
 
 interface Screen {
   name: string;
@@ -108,21 +108,32 @@ export function PublishPanel({ appId, appName, screens, appDescription }: Publis
         </div>
       </button>
 
-      {/* Android APK */}
-      <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 opacity-60">
+      {/* React Native Expo Export */}
+      <button
+        onClick={async () => {
+          try {
+            await exportAsExpo(appName, screens, appDescription);
+            toast.success("Expo project downloaded!");
+          } catch {
+            toast.error("Export failed");
+          }
+        }}
+        disabled={screens.length === 0}
+        className="w-full rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 text-left hover:bg-white/[0.04] transition-all disabled:opacity-40 group"
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-orange-500/10 flex items-center justify-center">
             <Smartphone className="w-4 h-4 text-orange-400" />
           </div>
-          <div className="flex-1">
+          <div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-white/80">Android APK</p>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">Coming Soon</span>
+              <p className="text-sm font-medium text-white/80">React Native (Expo)</p>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 font-medium">New</span>
             </div>
-            <p className="text-xs text-white/30 mt-0.5">Signed APK for direct install or Play Store</p>
+            <p className="text-xs text-white/30 mt-0.5">Full source code + build to APK with EAS</p>
           </div>
         </div>
-      </div>
+      </button>
 
       {/* iOS */}
       <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 opacity-40">

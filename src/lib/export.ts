@@ -8,6 +8,78 @@ interface AppScreen {
   html: string;
 }
 
+/**
+ * Export as React Native Expo project
+ */
+export async function exportAsExpo(
+  appName: string,
+  screens: AppScreen[],
+  description: string = '',
+  category: string = 'productivity',
+  blueprint?: any,
+) {
+  const apiBase = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : '';
+
+  const response = await fetch(`${apiBase}/api/export/react-native`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ appName, screens, description, category, blueprint }),
+  });
+
+  if (!response.ok) throw new Error('Export failed');
+  const data = await response.json();
+  if (!data.success) throw new Error(data.message || 'Export failed');
+
+  const zip = new JSZip();
+  const slug = appName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+  // Add all files from the assembled project
+  for (const [filePath, content] of Object.entries(data.files)) {
+    zip.file(filePath, content as string);
+  }
+
+  // Add placeholder assets
+  zip.file('assets/icon.png', ''); // placeholder
+  zip.file('assets/adaptive-icon.png', '');
+  zip.file('assets/splash.png', '');
+  zip.file('assets/favicon.png', '');
+
+  // README
+  zip.file('README.md', `# ${appName}
+
+Built with [AppForge](https://appforge-swart.vercel.app) — AI Mobile App Builder
+
+## Setup
+
+\`\`\`bash
+npm install
+npx expo start
+\`\`\`
+
+## Build APK
+
+\`\`\`bash
+npx eas build --platform android --profile preview
+\`\`\`
+
+## Configuration
+
+Edit \`src/config.ts\` to set your API keys:
+- Supabase URL & anon key (for self-managed database)
+- AdMob IDs (for ads)
+- Stripe/Razorpay keys (for payments)
+
+## Screens
+
+${screens.map((s, i) => `${i + 1}. ${s.name}`).join('\n')}
+`);
+
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveAs(blob, `${slug}-expo.zip`);
+}
+
 export async function exportAsZip(
   appName: string,
   screens: AppScreen[],
