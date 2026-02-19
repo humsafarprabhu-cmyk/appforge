@@ -1,0 +1,16 @@
+{
+  "name": "AppForge",
+  "short_name": "AppForge",
+  "description": "AI Mobile App Builder - Describe your app, it's on your phone in 2 minutes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

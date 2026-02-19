@@ -61,7 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         
         <motion.span
-          className="relative z-10"
+          className="relative z-10 inline-flex items-center"
           animate={loading ? { opacity: 0.7 } : { opacity: 1 }}
           transition={{ duration: 0.2 }}
         >

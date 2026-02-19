@@ -162,14 +162,14 @@ export function Hero() {
                   className="phone-screen w-full h-full bg-gradient-to-b from-slate-900 to-slate-800"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 1.5, duration: 0.5 }}
+                  transition={{ delay: 0.8, duration: 0.5 }}
                 >
                   {/* Status Bar */}
                   <motion.div 
                     className="flex justify-between items-center p-3 text-white text-xs"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 2.5, duration: 0.5 }}
+                    transition={{ delay: 1.2, duration: 0.5 }}
                   >
                     <span>9:41</span>
                     <div className="flex items-center gap-1">
@@ -185,13 +185,13 @@ export function Hero() {
                     className="text-center py-6 px-4"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 3, duration: 0.6 }}
+                    transition={{ delay: 1.5, duration: 0.6 }}
                   >
                     <motion.div 
                       className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      transition={{ delay: 3.2, type: "spring", stiffness: 200 }}
+                      transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
                     >
                       💪
                     </motion.div>
@@ -199,7 +199,7 @@ export function Hero() {
                       className="text-white text-xl font-bold"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      transition={{ delay: 3.4, duration: 0.5 }}
+                      transition={{ delay: 1.8, duration: 0.5 }}
                     >
                       FitTracker Pro
                     </motion.h3>
@@ -208,9 +208,9 @@ export function Hero() {
                   {/* App Content - Staggered Animation */}
                   <div className="px-4 space-y-4">
                     {[
-                      { delay: 3.8, content: "Today's Progress", icon: "📊" },
-                      { delay: 4.2, content: "Start Workout", icon: "🏃" },
-                      { delay: 4.6, content: "View Stats", icon: "📈" }
+                      { delay: 2.0, content: "Today's Progress", icon: "📊" },
+                      { delay: 2.3, content: "Start Workout", icon: "🏃" },
+                      { delay: 2.6, content: "View Stats", icon: "📈" }
                     ].map((item, i) => (
                       <motion.div
                         key={i}
@@ -230,7 +230,7 @@ export function Hero() {
                     className="absolute bottom-0 left-0 right-0 bg-black/20 backdrop-blur h-20 flex items-center justify-around px-4"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 5, duration: 0.5 }}
+                    transition={{ delay: 2.8, duration: 0.5 }}
                   >
                     {['🏠', '💪', '📊', '👤'].map((icon, i) => (
                       <motion.div
@@ -238,7 +238,7 @@ export function Hero() {
                         className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-lg"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 5 + i * 0.1, type: "spring" }}
+                        transition={{ delay: 2.8 + i * 0.1, type: "spring" }}
                       >
                         {icon}
                       </motion.div>
@@ -247,14 +247,18 @@ export function Hero() {
                 </motion.div>
 
                 {/* Floating Sparkles */}
-                {[...Array(6)].map((_, i) => (
+                {[
+                  { top: '25%', left: '10%' },
+                  { top: '40%', left: '85%' },
+                  { top: '60%', left: '5%' },
+                  { top: '35%', left: '95%' },
+                  { top: '70%', left: '50%' },
+                  { top: '50%', left: '30%' },
+                ].map((pos, i) => (
                   <motion.div
                     key={i}
                     className="absolute text-yellow-400 text-xl"
-                    style={{
-                      top: `${20 + Math.random() * 60}%`,
-                      left: `${-10 + Math.random() * 120}%`
-                    }}
+                    style={{ top: pos.top, left: pos.left }}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ 
                       opacity: [0, 1, 0], 
@@ -262,7 +266,7 @@ export function Hero() {
                       y: [0, -30, -60]
                     }}
                     transition={{
-                      delay: 4 + i * 0.3,
+                      delay: 2.5 + i * 0.3,
                       duration: 2,
                       repeat: Infinity,
                       repeatDelay: 3
