@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/auth-context";
 import "./globals.css";
@@ -90,6 +91,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <Script async src="https://www.googletagmanager.com/gtag/js?id=G-36YPNK1326" strategy="afterInteractive" />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-36YPNK1326');`}
+        </Script>
+      </head>
       <body
         className={`${geistSans.variable} font-sans antialiased bg-background text-foreground`}
       >

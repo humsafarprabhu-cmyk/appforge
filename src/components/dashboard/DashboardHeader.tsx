@@ -4,12 +4,17 @@ import { Plus, Code2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/auth-context";
 
 interface DashboardHeaderProps {
   onCreateApp: () => void;
 }
 
 export function DashboardHeader({ onCreateApp }: DashboardHeaderProps) {
+  const { profile, user } = useAuth();
+  const plan = profile?.plan || 'free';
+  const initial = profile?.full_name?.[0] || user?.email?.[0]?.toUpperCase() || 'U';
+
   return (
     <div className="navbar-glass">
       <div className="max-w-7xl mx-auto px-6 py-6">
@@ -24,9 +29,11 @@ export function DashboardHeader({ onCreateApp }: DashboardHeaderProps) {
             
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium">A</span>
+                <span className="text-sm font-medium">{initial}</span>
               </div>
-              <Badge variant="primary" size="sm">Pro Plan</Badge>
+              <Badge variant={plan === 'free' ? 'secondary' : 'primary'} size="sm">
+                {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
+              </Badge>
             </div>
           </div>
 
