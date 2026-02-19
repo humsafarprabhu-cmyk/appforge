@@ -25,7 +25,7 @@ export function CTA() {
                 Join thousands of makers who are already building amazing apps with AI. 
                 Start for free, no credit card required.
               </p>
-              <Link href="/dashboard">
+              <Link href="/try">
                 <Button size="xl" className="mr-4">
                   <Sparkles className="mr-2 w-5 h-5" />
                   Start Building Now

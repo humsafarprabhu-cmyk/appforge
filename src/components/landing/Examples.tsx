@@ -194,7 +194,7 @@ export function Examples() {
           <p className="text-lg text-muted-foreground mb-6">
             Don't see what you're looking for? Create something completely custom!
           </p>
-          <Link href="/dashboard">
+          <Link href="/try">
             <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl">
               Build Your Own App
             </Button>

@@ -86,7 +86,7 @@ export function Pricing() {
                     ))}
                   </ul>
                   
-                  <Link href="/dashboard">
+                  <Link href="/try">
                     <Button 
                       className="w-full" 
                       variant={plan.popular ? "primary" : "secondary"}

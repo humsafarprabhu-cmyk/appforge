@@ -40,6 +40,22 @@ export async function exportAsZip(
     ],
   }, null, 2));
 
+  // AppForge SDK
+  try {
+    const sdkRes = await fetch('/sdk/appforge-sdk.js');
+    if (sdkRes.ok) {
+      const sdkCode = await sdkRes.text();
+      zip.file('sdk/appforge-sdk.js', sdkCode);
+    }
+  } catch { /* SDK fetch failed, skip */ }
+
+  // .env.example for SDK configuration
+  zip.file('.env.example', `# AppForge SDK Configuration
+# Get these from your AppForge dashboard
+APPFORGE_API_URL=https://your-api-url.com
+APPFORGE_APP_ID=your-app-id
+`);
+
   // README
   zip.file('README.md', `# ${appName}
 

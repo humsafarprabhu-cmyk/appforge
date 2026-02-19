@@ -62,7 +62,7 @@ export function Hero() {
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             variants={fadeInUp}
           >
-            <Link href="/dashboard">
+            <Link href="/try">
               <Button size="xl" className="w-full sm:w-auto">
                 <Sparkles className="mr-2 w-5 h-5" />
                 Start Building — Free

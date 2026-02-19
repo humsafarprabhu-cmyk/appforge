@@ -41,7 +41,7 @@ export function Navbar() {
             <Link href="/login">
               <Button variant="ghost" size="sm">Log In</Button>
             </Link>
-            <Link href="/signup">
+            <Link href="/try">
               <Button size="sm">
                 Start Building — Free
                 <ArrowRight className="ml-2 w-4 h-4" />
