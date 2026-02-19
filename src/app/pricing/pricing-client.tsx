@@ -302,8 +302,121 @@ export function PricingClient() {
           </div>
         </section>
 
-        {/* Rest of the pricing content */}
-        {/* ... (same content as before) */}
+        {/* Pricing Cards */}
+        <section className="pb-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
+              {Object.values(PLANS).map((plan) => (
+                <motion.div key={plan.id} variants={fadeInUp}>
+                  <Card className={`relative h-full ${plan.popular ? 'border-primary/50 ring-2 ring-primary/20' : ''}`}>
+                    {plan.badge && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge variant={plan.popular ? 'default' : 'secondary'} size="sm">
+                          {plan.popular && <Star className="w-3 h-3 mr-1" />}
+                          {plan.badge}
+                        </Badge>
+                      </div>
+                    )}
+                    <CardHeader className="text-center pt-8 pb-4">
+                      <CardTitle className="text-xl">{plan.name}</CardTitle>
+                      <CardDescription className="text-sm">{plan.description}</CardDescription>
+                      <div className="mt-4">
+                        <span className="text-4xl font-bold text-white">
+                          ${isYearly ? plan.priceYearly : plan.price}
+                        </span>
+                        {plan.price > 0 && (
+                          <span className="text-muted text-sm">/mo</span>
+                        )}
+                      </div>
+                      {isYearly && plan.price > 0 && (
+                        <div className="text-xs text-green-400 mt-1">
+                          Save ${(plan.price - plan.priceYearly) * 12}/year
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <Link href={plan.price === 0 ? '/signup' : '/signup'}>
+                        <Button 
+                          className="w-full mb-6" 
+                          variant={plan.popular ? 'primary' : 'secondary'}
+                          size="md"
+                        >
+                          {plan.price === 0 ? 'Get Started' : 'Start Free Trial'}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                      <ul className="space-y-3">
+                        {plan.features.map((feature, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-white/80">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-20 px-6 border-t border-border/50">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-12">
+              <span className="gradient-text">Frequently Asked Questions</span>
+            </h2>
+            <div className="space-y-4">
+              {pricingFaqs.map((faq, index) => (
+                <motion.div
+                  key={index}
+                  className="glass rounded-2xl overflow-hidden"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <button
+                    className="w-full text-left p-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  >
+                    <span className="font-medium text-white pr-4">{faq.question}</span>
+                    <ChevronDown className={`w-5 h-5 text-muted transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
+                  </button>
+                  {openFaq === index && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      className="px-5 pb-5"
+                    >
+                      <p className="text-white/70 text-sm leading-relaxed">{faq.answer}</p>
+                    </motion.div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-20 px-6 text-center">
+          <div className="max-w-2xl mx-auto">
+            <Zap className="w-12 h-12 text-primary mx-auto mb-6" />
+            <h2 className="text-3xl font-bold mb-4">Ready to build your app?</h2>
+            <p className="text-muted mb-8">Start for free. No credit card required. Upgrade anytime.</p>
+            <Link href="/signup">
+              <Button size="xl">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Start Building — Free
+              </Button>
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );
