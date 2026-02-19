@@ -60,6 +60,7 @@ interface BuilderState {
   
   addScreen: (screen: AppScreen) => void;
   updateScreen: (index: number, screen: Partial<AppScreen>) => void;
+  removeScreen: (index: number) => void;
   setCurrentScreen: (index: number) => void;
   clearScreens: () => void;
   
@@ -669,6 +670,14 @@ export const useBuilderStore = create<BuilderState>()(
           i === index ? { ...screen, ...screenUpdate } : screen
         )
       })),
+
+      removeScreen: (index) => set((state) => {
+        const newScreens = state.screens.filter((_, i) => i !== index);
+        const newCurrent = state.currentScreen >= newScreens.length 
+          ? Math.max(0, newScreens.length - 1) 
+          : state.currentScreen;
+        return { screens: newScreens, currentScreen: newCurrent };
+      }),
       
       setCurrentScreen: (index) => set({ currentScreen: index }),
       
