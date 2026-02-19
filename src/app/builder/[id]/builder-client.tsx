@@ -92,15 +92,17 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
   const saveToSupabase = useCallback(async () => {
     if (appId === 'demo') return;
     try {
-      await supabase
+      const { error } = await supabase
         .from('apps')
         .update({
           name: appName,
           description: appDescription,
           screens: screens.map(s => ({ name: s.name, html: s.html })),
           status: screens.length > 0 ? 'ready' : 'draft',
+          updated_at: new Date().toISOString(),
         })
         .eq('id', appId);
+      if (error) console.error('Supabase save error:', error.message);
     } catch (err) {
       console.error('Failed to save to Supabase:', err);
     }
