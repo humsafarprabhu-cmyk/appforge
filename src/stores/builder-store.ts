@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { ChatMessage } from '@/types/app';
+import type { ChatMessage, OnboardingQuestion } from '@/types/app';
 
 interface AppScreen {
   name: string;
@@ -10,7 +10,7 @@ interface AppScreen {
 
 interface OnboardingState {
   isOnboarding: boolean;
-  questions: string[];
+  questions: OnboardingQuestion[];
   acknowledgment: string;
 }
 
@@ -69,6 +69,7 @@ interface BuilderState {
   // Onboarding
   setOnboarding: (onboarding: OnboardingState) => void;
   clearOnboarding: () => void;
+  submitOnboarding: (answers: Record<string, string | string[]>) => Promise<void>;
   
   // Initialize with demo data
   initializeDemoData: () => void;
@@ -677,6 +678,37 @@ export const useBuilderStore = create<BuilderState>()(
       setOnboarding: (onboarding) => set({ onboarding }),
       clearOnboarding: () => set({ onboarding: { isOnboarding: false, questions: [], acknowledgment: '' } }),
       
+      submitOnboarding: async (answers) => {
+        const { onboarding, addMessage, appId, appName, appDescription, clearOnboarding, generateApp } = get();
+        
+        // Format answers into a readable summary and a generation prompt
+        const lines: string[] = [];
+        for (const q of onboarding.questions) {
+          const answer = answers[q.id];
+          if (!answer || (Array.isArray(answer) && answer.length === 0)) continue;
+          const val = Array.isArray(answer) ? answer.join(', ') : answer;
+          lines.push(`${q.text} → ${val}`);
+        }
+        
+        // Add user message showing selections
+        addMessage({
+          app_id: appId || 'new-app',
+          role: 'user',
+          content: lines.join('\n'),
+          version_number: 1,
+          tokens_used: null,
+          model: null,
+        });
+        
+        clearOnboarding();
+        
+        // Build a generation prompt from the original description + answers
+        const answerPrompt = `Build me "${appName}": ${appDescription}\n\nUser preferences:\n${lines.join('\n')}`;
+        
+        // Call generateApp in generate mode by ensuring screens is empty
+        await generateApp(answerPrompt);
+      },
+      
       // Initialize with demo data
       initializeDemoData: () => set({
         messages: DEMO_MESSAGES,
@@ -734,7 +766,8 @@ export const useBuilderStore = create<BuilderState>()(
         // Determine mode
         const isUpdate = screens.length > 0;
         const isFirstMessage = messages.filter(m => m.role === 'user').length <= 1;
-        const mode = isUpdate ? 'update' : (isFirstMessage && screens.length === 0 ? 'onboarding' : 'generate');
+        const { onboarding: onboardingState } = get();
+        const mode = isUpdate ? 'update' : (isFirstMessage && screens.length === 0 && !onboardingState.acknowledgment ? 'onboarding' : 'generate');
 
         // Add AI response message
         const aiResponseContent = isUpdate 
@@ -800,10 +833,11 @@ export const useBuilderStore = create<BuilderState>()(
                 setOnboarding({ isOnboarding: true, questions: data.questions, acknowledgment: data.acknowledgment || '' });
                 if (data.appName) sAN(data.appName);
                 if (data.description) sAD(data.description);
+                // Add a message that will trigger the interactive questions UI
                 addMessage({
                   app_id: appId || 'new-app',
                   role: 'assistant',
-                  content: `${data.acknowledgment || 'Great idea!'}\n\nBefore I build this, a few questions:\n${data.questions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`,
+                  content: `__ONBOARDING_QUESTIONS__`,
                   version_number: 1,
                   tokens_used: null,
                   model: 'gpt-4o',

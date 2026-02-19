@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { OnboardingQuestions } from "./OnboardingQuestions";
+import { useBuilderStore } from "@/stores/builder-store";
 
 import type { ChatMessage as ChatMessageType } from "@/types/app";
 
@@ -12,6 +14,12 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message, index }: ChatMessageProps) {
+  const onboarding = useBuilderStore((s) => s.onboarding);
+  const isOnboardingMessage =
+    message.role === "assistant" &&
+    message.content === "__ONBOARDING_QUESTIONS__" &&
+    onboarding.isOnboarding;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -33,6 +41,8 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
             {message.content}
           </Badge>
         </div>
+      ) : isOnboardingMessage ? (
+        <OnboardingQuestions />
       ) : (
         <Card className="max-w-md p-4 glass">
           <div className="flex items-start gap-3">

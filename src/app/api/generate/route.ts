@@ -23,6 +23,9 @@ Rules:
 - Questions should cover: key features, target audience, data needs, and visual style
 - Keep questions concise and specific to their app idea
 - Do NOT ask generic questions — tailor them to the specific app type
+- Each question MUST have a type: "checkbox" (multiple selection), "radio" (single selection), or "text" (free input)
+- checkbox and radio questions MUST have an "options" array with 3-6 choices
+- text questions MUST have a "placeholder" string
 
 Respond ONLY with valid JSON:
 {
@@ -31,10 +34,10 @@ Respond ONLY with valid JSON:
   "description": "Brief exciting description of what you'll build",
   "acknowledgment": "Your enthusiastic 1-2 sentence acknowledgment",
   "questions": [
-    "First specific question?",
-    "Second specific question?",
-    "Third specific question?",
-    "Fourth specific question (optional)?"
+    { "id": "q1", "text": "What features do you want?", "type": "checkbox", "options": ["Feature A", "Feature B", "Feature C", "Feature D", "Feature E"] },
+    { "id": "q2", "text": "Who is your target audience?", "type": "radio", "options": ["Option A", "Option B", "Option C", "Option D"] },
+    { "id": "q3", "text": "What visual style?", "type": "radio", "options": ["Minimal & clean", "Colorful & playful", "Dark & professional", "Glassmorphism"] },
+    { "id": "q4", "text": "Any specific requirements?", "type": "text", "placeholder": "E.g., offline support, markdown editing..." }
   ]
 }`;
 
@@ -389,13 +392,20 @@ export async function POST(request: NextRequest) {
       if (!content) throw new Error('No response from AI');
 
       const result = JSON.parse(content);
+      // Normalize questions: support both old string[] and new object[] formats
+      const questions = (result.questions || []).map((q: string | { id: string; text: string; type: string; options?: string[]; placeholder?: string }, i: number) => {
+        if (typeof q === 'string') {
+          return { id: `q${i + 1}`, text: q, type: 'text', placeholder: 'Type your answer...' };
+        }
+        return q;
+      });
       return NextResponse.json({
         success: true,
         type: 'questions',
         appName: result.appName || generateAppName(prompt),
         description: result.description || generateDescription(prompt),
         acknowledgment: result.acknowledgment || '',
-        questions: result.questions || [],
+        questions,
       });
     }
 
@@ -423,36 +433,64 @@ export async function POST(request: NextRequest) {
 
     console.log(`[AppForge] Generating ${generationMode} for: ${prompt.substring(0, 80)}...`);
 
-    const completion = await openai.chat.completions.create({
-      model: OPENAI_MODEL || 'gpt-4o',
-      messages: [{ role: 'system', content: systemPrompt }, ...conversationMessages],
-      max_tokens: MAX_CODE_TOKENS || 16000,
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
-    });
-
-    const responseContent = completion.choices[0]?.message?.content;
-    if (!responseContent) throw new Error('No content in AI response');
-
-    const aiResult = JSON.parse(responseContent);
-    if (!aiResult.screens || !Array.isArray(aiResult.screens)) {
-      throw new Error('Invalid response format — no screens array');
-    }
-
-    console.log(`[AppForge] Generated ${aiResult.screens.length} screens successfully`);
-
-    // Stream the result to the frontend
+    // Use streaming to avoid Vercel timeout — send SSE headers immediately, 
+    // then stream from OpenAI, accumulate JSON, parse and send complete event
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Send initial progress immediately to keep connection alive
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'progress',
+            progress: 5,
+            message: 'Starting AI generation...',
+          })}\n\n`));
+
+          const openaiStream = await openai.chat.completions.create({
+            model: OPENAI_MODEL || 'gpt-4o',
+            messages: [{ role: 'system', content: systemPrompt }, ...conversationMessages],
+            max_tokens: MAX_CODE_TOKENS || 16000,
+            temperature: 0.7,
+            response_format: { type: 'json_object' },
+            stream: true,
+          });
+
+          let accumulated = '';
+          let chunkCount = 0;
+          const totalExpectedChunks = 800; // rough estimate
+
+          for await (const chunk of openaiStream) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            accumulated += content;
+            chunkCount++;
+
+            // Send progress updates every 40 chunks to keep connection alive
+            if (chunkCount % 40 === 0) {
+              const progress = Math.min(85, 5 + (chunkCount / totalExpectedChunks) * 80);
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'progress',
+                progress: Math.round(progress),
+                message: `Generating app code... (${Math.round(progress)}%)`,
+              })}\n\n`));
+            }
+          }
+
+          if (!accumulated) throw new Error('No content in AI response');
+
+          const aiResult = JSON.parse(accumulated);
+          if (!aiResult.screens || !Array.isArray(aiResult.screens)) {
+            throw new Error('Invalid response format — no screens array');
+          }
+
+          console.log(`[AppForge] Generated ${aiResult.screens.length} screens successfully`);
+
+          // Send screen-by-screen progress
           for (let i = 0; i < aiResult.screens.length; i++) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'progress',
-              progress: ((i + 1) / aiResult.screens.length) * 90,
+              progress: 85 + ((i + 1) / aiResult.screens.length) * 10,
               message: `Processing ${aiResult.screens[i].name || `screen ${i + 1}`}...`,
             })}\n\n`));
-            await new Promise(r => setTimeout(r, 150));
           }
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -464,6 +502,10 @@ export async function POST(request: NextRequest) {
           })}\n\n`));
         } catch (e) {
           console.error('[AppForge] Streaming error:', e);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+            type: 'error',
+            message: e instanceof Error ? e.message : 'Generation failed',
+          })}\n\n`));
         } finally {
           controller.close();
         }

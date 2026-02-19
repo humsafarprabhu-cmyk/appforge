@@ -123,6 +123,14 @@ export interface Build {
   completed_at: string | null;
 }
 
+export interface OnboardingQuestion {
+  id: string;
+  text: string;
+  type: 'checkbox' | 'radio' | 'text';
+  options?: string[];
+  placeholder?: string;
+}
+
 export interface AppCategory {
   id: string;
   name: string;
