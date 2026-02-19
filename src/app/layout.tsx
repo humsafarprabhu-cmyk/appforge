@@ -96,6 +96,9 @@ export default function RootLayout({
         <Script id="gtag-init" strategy="afterInteractive">
           {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-36YPNK1326');`}
         </Script>
+        {/* Lemon Squeezy overlay checkout */}
+        <Script src="https://assets.lemonsqueezy.com/lemon.js" strategy="lazyOnload" />
+        {/* Razorpay loaded on-demand in checkout.ts */}
       </head>
       <body
         className={`${geistSans.variable} font-sans antialiased bg-background text-foreground`}

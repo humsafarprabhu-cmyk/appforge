@@ -13,6 +13,7 @@ import {
   Zap
 } from "lucide-react";
 import Link from "next/link";
+import { isIndianUser, formatPrice, getCheckoutUrl } from "@/lib/checkout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -327,7 +328,7 @@ export function PricingClient() {
                       <CardDescription className="text-sm">{plan.description}</CardDescription>
                       <div className="mt-4">
                         <span className="text-4xl font-bold text-white">
-                          ${isYearly ? plan.priceYearly : plan.price}
+                          {formatPrice(plan, isYearly)}
                         </span>
                         {plan.price > 0 && (
                           <span className="text-muted text-sm">/mo</span>
@@ -335,18 +336,20 @@ export function PricingClient() {
                       </div>
                       {isYearly && plan.price > 0 && (
                         <div className="text-xs text-green-400 mt-1">
-                          Save ${(plan.price - plan.priceYearly) * 12}/year
+                          Save {isIndianUser() 
+                            ? `₹${(plan.priceINR - plan.priceYearlyINR) * 12}` 
+                            : `$${(plan.price - plan.priceYearly) * 12}`}/year
                         </div>
                       )}
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <Link href={plan.price === 0 ? '/signup' : '/signup'}>
+                      <Link href={plan.price === 0 ? '/try' : (getCheckoutUrl(plan.id, isYearly) || '/signup')}>
                         <Button 
                           className="w-full mb-6" 
                           variant={plan.popular ? 'primary' : 'secondary'}
                           size="md"
                         >
-                          {plan.price === 0 ? 'Get Started' : 'Start Free Trial'}
+                          {plan.price === 0 ? 'Start Building — Free' : 'Start Free Trial'}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </Link>

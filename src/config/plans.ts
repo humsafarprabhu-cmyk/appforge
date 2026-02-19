@@ -5,6 +5,8 @@ export interface PlanConfig {
   name: string;
   price: number; // monthly USD
   priceYearly: number; // yearly USD (per month)
+  priceINR: number; // monthly INR
+  priceYearlyINR: number; // yearly INR (per month)
   description: string;
   features: string[];
   limits: {
@@ -21,6 +23,9 @@ export interface PlanConfig {
   };
   badge?: string;
   popular?: boolean;
+  // Checkout links (set after creating products)
+  lemonSqueezyCheckoutUrl?: string; // International (USD)
+  razorpayPlanId?: string; // India (INR)
 }
 
 export const PLANS: Record<Plan, PlanConfig> = {
@@ -29,6 +34,8 @@ export const PLANS: Record<Plan, PlanConfig> = {
     name: 'Free',
     price: 0,
     priceYearly: 0,
+    priceINR: 0,
+    priceYearlyINR: 0,
     description: 'Perfect for trying out AppForge',
     features: [
       'Up to 3 apps',
@@ -55,6 +62,8 @@ export const PLANS: Record<Plan, PlanConfig> = {
     name: 'Maker',
     price: 12,
     priceYearly: 9,
+    priceINR: 999,
+    priceYearlyINR: 749,
     description: 'For indie makers shipping apps',
     features: [
       'Up to 10 apps',
@@ -83,6 +92,8 @@ export const PLANS: Record<Plan, PlanConfig> = {
     name: 'Pro',
     price: 29,
     priceYearly: 23,
+    priceINR: 2399,
+    priceYearlyINR: 1899,
     description: 'For serious app builders',
     features: [
       'Unlimited apps',
@@ -115,6 +126,8 @@ export const PLANS: Record<Plan, PlanConfig> = {
     name: 'Agency',
     price: 79,
     priceYearly: 63,
+    priceINR: 6499,
+    priceYearlyINR: 5199,
     description: 'For agencies building for clients',
     features: [
       'Everything in Pro',
