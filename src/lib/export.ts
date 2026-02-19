@@ -20,9 +20,9 @@ export async function exportAsZip(
   const indexHtml = generateIndexHtml(appName, screens, false);
   zip.file('index.html', indexHtml);
 
-  // Individual screen files
+  // Individual screen files (with watermark)
   screens.forEach((screen, i) => {
-    zip.file(`screens/${screen.name.toLowerCase().replace(/\s+/g, '-')}.html`, screen.html);
+    zip.file(`screens/${screen.name.toLowerCase().replace(/\s+/g, '-')}.html`, injectWatermark(screen.html));
   });
 
   // manifest.json for PWA
@@ -120,7 +120,7 @@ function generateIndexHtml(appName: string, screens: AppScreen[], isPWA = false)
 
   ${screens.map((screen, i) => `
   <div class="screen${i === 0 ? ' active' : ''}" id="screen-${i}">
-    <iframe srcdoc="${escapeHtml(screen.html)}" loading="${i === 0 ? 'eager' : 'lazy'}"></iframe>
+    <iframe srcdoc="${escapeHtml(injectWatermark(screen.html))}" loading="${i === 0 ? 'eager' : 'lazy'}"></iframe>
   </div>`).join('\n')}
 
   <!-- Bottom Tab Bar -->
@@ -180,6 +180,16 @@ function getScreenIcon(name: string): string {
   return '📱';
 }
 
+const WATERMARK = '<div style="position:fixed;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:rgba(255,255,255,0.2);pointer-events:none;z-index:999;">Built with AppForge</div>';
+
+function injectWatermark(html: string): string {
+  // Insert watermark before closing </div> or at end
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${WATERMARK}</body>`);
+  }
+  return html + WATERMARK;
+}
+
 function escapeHtml(html: string): string {
   return html
     .replace(/&/g, '&amp;')
@@ -199,7 +209,7 @@ export async function exportAsPWA(
 
   zip.file('index.html', generateIndexHtml(appName, screens, true));
   screens.forEach((screen) => {
-    zip.file(`screens/${screen.name.toLowerCase().replace(/\s+/g, '-')}.html`, screen.html);
+    zip.file(`screens/${screen.name.toLowerCase().replace(/\s+/g, '-')}.html`, injectWatermark(screen.html));
   });
 
   zip.file('manifest.json', JSON.stringify({

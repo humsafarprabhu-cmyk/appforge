@@ -805,6 +805,50 @@ export const useBuilderStore = create<BuilderState>()(
                   </div>
                 `
               });
+              addScreen({
+                name: 'Features',
+                html: `
+                  <div style="padding: 20px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                    <h1 style="text-align: center; font-size: 28px; margin-bottom: 30px;">Features</h1>
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px); margin-bottom: 15px;">
+                      <h3 style="margin: 0 0 8px 0;">⚡ Fast & Responsive</h3>
+                      <p style="margin: 0; opacity: 0.8; font-size: 14px;">Built for speed and smooth interactions</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px); margin-bottom: 15px;">
+                      <h3 style="margin: 0 0 8px 0;">🎨 Beautiful Design</h3>
+                      <p style="margin: 0; opacity: 0.8; font-size: 14px;">Modern glassmorphism UI with gradients</p>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
+                      <h3 style="margin: 0 0 8px 0;">📱 Mobile First</h3>
+                      <p style="margin: 0; opacity: 0.8; font-size: 14px;">Designed for the best mobile experience</p>
+                    </div>
+                  </div>
+                `
+              });
+              addScreen({
+                name: 'Settings',
+                html: `
+                  <div style="padding: 20px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); min-height: 100vh; color: white; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                    <h1 style="text-align: center; font-size: 28px; margin-bottom: 30px;">Settings</h1>
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px); margin-bottom: 15px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span>Dark Mode</span><span>✓</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span>Notifications</span><span>✓</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Language</span><span>English</span>
+                      </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px);">
+                      <h3 style="margin: 0 0 15px 0; font-size: 18px;">Account</h3>
+                      <button style="width: 100%; background: rgba(255,255,255,0.2); border: none; color: white; padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 10px;">Edit Profile</button>
+                      <button style="width: 100%; background: rgba(239,68,68,0.3); border: none; color: #fca5a5; padding: 12px; border-radius: 8px; font-size: 14px;">Sign Out</button>
+                    </div>
+                  </div>
+                `
+              });
             }
           } else {
             // Make streaming API call

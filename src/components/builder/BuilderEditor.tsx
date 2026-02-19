@@ -193,7 +193,7 @@ export function BuilderEditor({
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">Describe your app</h3>
                 <p className="text-white/40 text-sm mb-8 max-w-xs leading-relaxed">
-                  Tell me what you want to build and I'll generate a complete mobile app with 5 screens.
+                  Tell me what you want to build and I'll generate a complete mobile app with 3 screens.
                 </p>
                 <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
                   {SUGGESTIONS.map((s) => (

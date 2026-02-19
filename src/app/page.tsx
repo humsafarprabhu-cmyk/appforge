@@ -27,9 +27,35 @@ export const metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "AppForge",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Web",
+  url: "https://appforge-swart.vercel.app",
+  description: "Turn your app idea into a real mobile app. AI-powered app builder with instant preview, glassmorphism UI, and one-click export. No coding required.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  featureList: [
+    "AI-powered app generation",
+    "Instant live preview",
+    "Glassmorphism UI design",
+    "One-click ZIP/PWA export",
+    "No coding required",
+  ],
+};
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
       <Hero />
       <SocialProof />

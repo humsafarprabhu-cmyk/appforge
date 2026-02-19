@@ -12,9 +12,9 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "AppForge - AI Mobile App Builder",
-  description: "Describe your app. It's on your phone in 2 minutes. Build stunning mobile apps with AI - no code required.",
-  keywords: ["AI", "mobile app builder", "no-code", "app development", "React Native", "PWA"],
+  title: "AppForge — Build Mobile Apps with AI in Minutes",
+  description: "Turn your app idea into a real mobile app. AI-powered app builder with instant preview, glassmorphism UI, and one-click export. No coding required.",
+  keywords: ["AI app builder", "mobile app builder", "no-code app maker", "AI mobile app", "build app without coding", "app generator", "PWA builder", "glassmorphism UI", "instant app preview", "one-click export"],
   authors: [{ name: "AppForge Team" }],
   creator: "AppForge",
   publisher: "AppForge",
