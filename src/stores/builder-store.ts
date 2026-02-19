@@ -25,6 +25,7 @@ interface BuilderState {
   appId: string | null;
   appName: string;
   appDescription: string;
+  lastJobId: string | null;
   
   // Screens state
   screens: AppScreen[];
@@ -620,6 +621,7 @@ export const useBuilderStore = create<BuilderState>()(
       appId: null,
       appName: 'My New App',
       appDescription: '',
+      lastJobId: null,
       
       screens: [],
       currentScreen: 0,
@@ -913,6 +915,7 @@ export const useBuilderStore = create<BuilderState>()(
             // Handle job-based generation — poll until complete
             if (data.type === 'job' && data.jobId) {
               const jobId = data.jobId;
+              set({ lastJobId: jobId });
               let lastScreenCount = 0;
 
               setGenerationProgress(5, 'Planning your app...');

@@ -1,8 +1,12 @@
 "use client";
 
-import { Globe, Smartphone, FileArchive, Rocket, ExternalLink, Check, Lock } from "lucide-react";
+import { useState } from "react";
+import { Globe, Smartphone, FileArchive, Rocket, ExternalLink, Check, Lock, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { exportAsZip, exportAsPWA, exportAsExpo } from "@/lib/export";
+import { useBuilderStore } from "@/stores/builder-store";
+import { useAuth } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/client";
 
 interface Screen {
   name: string;
@@ -17,13 +21,63 @@ interface PublishPanelProps {
 }
 
 export function PublishPanel({ appId, appName, screens, appDescription }: PublishPanelProps) {
-  const liveUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/app/${appId}`
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSlug, setSavedSlug] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { blueprint } = useBuilderStore();
+
+  const apiBase = typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:3001" : "";
+  
+  // For try-mode, link to backend functional app endpoint
+  const jobId = useBuilderStore.getState().lastJobId;
+  const liveUrl = savedSlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/app/${savedSlug}`
+    : jobId
+    ? `${apiBase}/app/${jobId}`
     : "";
 
   const handleCopyUrl = () => {
+    if (!liveUrl) return;
     navigator.clipboard.writeText(liveUrl);
     toast.success("Live URL copied!");
+  };
+
+  const handleSaveToCloud = async () => {
+    if (!user) {
+      toast.error("Sign in to publish your app");
+      return;
+    }
+    if (screens.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      const supabase = createClient();
+      const slug = appName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "my-app";
+
+      const { data, error } = await supabase
+        .from("apps")
+        .upsert({
+          user_id: user.id,
+          name: appName,
+          slug,
+          description: appDescription || "",
+          screens: screens.map(s => ({ name: s.name, html: s.html })),
+          blueprint: blueprint || null,
+          status: "ready",
+          category: "custom",
+          package_name: `com.appforge.${slug}`,
+        }, { onConflict: "slug" })
+        .select("slug")
+        .single();
+
+      if (error) throw error;
+      setSavedSlug(data.slug);
+      toast.success("App published! 🚀");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to publish");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleZip = async () => {
@@ -55,19 +109,38 @@ export function PublishPanel({ appId, appName, screens, appDescription }: Publis
           <div>
             <p className="text-sm font-medium text-white/80">Live on Web</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <span className="text-xs text-green-400">Published</span>
+              <div className={`w-1.5 h-1.5 rounded-full ${liveUrl ? "bg-green-500" : "bg-white/20"}`} />
+              <span className={`text-xs ${liveUrl ? "text-green-400" : "text-white/30"}`}>
+                {savedSlug ? "Published" : liveUrl ? "Preview available" : "Not published"}
+              </span>
             </div>
           </div>
         </div>
         {screens.length > 0 ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-white/[0.04] rounded-lg px-3 py-2">
-              <p className="text-xs text-white/50 font-mono truncate">{liveUrl}</p>
-            </div>
-            <button onClick={handleCopyUrl} className="px-3 py-2 rounded-lg bg-green-500/20 text-green-400 text-xs font-medium hover:bg-green-500/30 transition-colors">
-              Copy
-            </button>
+          <div className="space-y-2">
+            {liveUrl && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-white/[0.04] rounded-lg px-3 py-2">
+                  <p className="text-xs text-white/50 font-mono truncate">{liveUrl}</p>
+                </div>
+                <button onClick={handleCopyUrl} className="px-3 py-2 rounded-lg bg-green-500/20 text-green-400 text-xs font-medium hover:bg-green-500/30 transition-colors">
+                  Copy
+                </button>
+              </div>
+            )}
+            {!savedSlug && user && (
+              <button
+                onClick={handleSaveToCloud}
+                disabled={isSaving}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-500/15 border border-green-500/20 text-green-300 text-sm font-medium hover:bg-green-500/20 transition-colors disabled:opacity-50"
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+                {isSaving ? "Publishing..." : "Publish to Web"}
+              </button>
+            )}
+            {!user && (
+              <p className="text-xs text-white/25 text-center">Sign in to publish your app permanently</p>
+            )}
           </div>
         ) : (
           <p className="text-xs text-white/30">Generate your app first</p>
@@ -134,6 +207,22 @@ export function PublishPanel({ appId, appName, screens, appDescription }: Publis
           </div>
         </div>
       </button>
+
+      {/* APK Build */}
+      <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 opacity-40">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
+            <Smartphone className="w-4 h-4 text-teal-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-white/50">Build APK</p>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/30 font-medium">Maker Plan</span>
+            </div>
+            <p className="text-xs text-white/20 mt-0.5">Signed Android APK via cloud build</p>
+          </div>
+        </div>
+      </div>
 
       {/* iOS */}
       <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 opacity-40">
