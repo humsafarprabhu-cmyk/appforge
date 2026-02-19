@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useBuilderStore } from "@/stores/builder-store";
-import { BuilderEditor } from "@/components/builder/BuilderEditor";
+import { StudioLayout } from "@/components/studio/StudioLayout";
 import { Sparkles, ArrowRight, Zap, Smartphone, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -182,24 +182,13 @@ export function TryClient() {
     );
   }
 
-  // Show builder once generation starts
+  // Show Studio once generation starts
   return (
-    <BuilderEditor
+    <StudioLayout
       appId="try-mode"
-      appName={appName}
-      screens={screens}
-      currentScreen={currentScreen}
-      messages={messages}
-      isGenerating={isGenerating}
-      generationProgress={generationProgress}
-      generationMessage={generationMessage}
-      lastError={lastError}
-      chatInputValue={chatInputValue}
-      onAppNameChange={setAppName}
-      onScreenChange={setCurrentScreen}
-      onChatInputChange={setChatInputValue}
-      onSendMessage={handleSendMessage}
-      onRetry={retryGeneration}
+      onSendMessage={(msg: string) => {
+        generateApp(msg).catch(() => toast.error("Failed. Try again."));
+      }}
     />
   );
 }
