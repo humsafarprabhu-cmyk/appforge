@@ -8,6 +8,12 @@ interface AppScreen {
   isActive?: boolean;
 }
 
+interface OnboardingState {
+  isOnboarding: boolean;
+  questions: string[];
+  acknowledgment: string;
+}
+
 interface BuilderState {
   // Chat state
   messages: ChatMessage[];
@@ -31,6 +37,9 @@ interface BuilderState {
   // UI state
   chatInputValue: string;
   isChatExpanded: boolean;
+  
+  // Onboarding state
+  onboarding: OnboardingState;
   
   // Error handling
   lastError: string | null;
@@ -56,6 +65,10 @@ interface BuilderState {
   
   setChatInputValue: (value: string) => void;
   setChatExpanded: (expanded: boolean) => void;
+  
+  // Onboarding
+  setOnboarding: (onboarding: OnboardingState) => void;
+  clearOnboarding: () => void;
   
   // Initialize with demo data
   initializeDemoData: () => void;
@@ -612,6 +625,8 @@ export const useBuilderStore = create<BuilderState>()(
       chatInputValue: '',
       isChatExpanded: false,
       
+      onboarding: { isOnboarding: false, questions: [], acknowledgment: '' },
+      
       lastError: null,
       
       // Actions
@@ -658,6 +673,9 @@ export const useBuilderStore = create<BuilderState>()(
       
       setChatInputValue: (value) => set({ chatInputValue: value }),
       setChatExpanded: (expanded) => set({ isChatExpanded: expanded }),
+      
+      setOnboarding: (onboarding) => set({ onboarding }),
+      clearOnboarding: () => set({ onboarding: { isOnboarding: false, questions: [], acknowledgment: '' } }),
       
       // Initialize with demo data
       initializeDemoData: () => set({
@@ -713,9 +731,10 @@ export const useBuilderStore = create<BuilderState>()(
           model: null,
         });
 
-        // Determine if this is an update or initial generation
+        // Determine mode
         const isUpdate = screens.length > 0;
-        const mode = isUpdate ? 'update' : 'initial';
+        const isFirstMessage = messages.filter(m => m.role === 'user').length <= 1;
+        const mode = isUpdate ? 'update' : (isFirstMessage && screens.length === 0 ? 'onboarding' : 'generate');
 
         // Add AI response message
         const aiResponseContent = isUpdate 
@@ -758,21 +777,41 @@ export const useBuilderStore = create<BuilderState>()(
             // Make streaming API call
             const response = await fetch('/api/generate', {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 prompt,
                 appId: appId || 'new-app',
-                messages: messages.slice(-10), // Last 10 messages for context
+                messages: messages.slice(-10),
                 currentScreens: isUpdate ? screens.map(s => ({ name: s.name, html: s.html })) : undefined,
-                mode,
-                category: 'custom', // TODO: get from app data
+                mode: isUpdate ? 'update' : (mode === 'onboarding' ? 'onboarding' : 'generate'),
               }),
             });
 
             if (!response.ok) {
               throw new Error(`API call failed: ${response.status}`);
+            }
+
+            // Handle onboarding (non-streaming JSON response)
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+              const data = await response.json();
+              if (data.type === 'questions' && data.questions) {
+                const { setOnboarding, setAppName: sAN, setAppDescription: sAD } = get();
+                setOnboarding({ isOnboarding: true, questions: data.questions, acknowledgment: data.acknowledgment || '' });
+                if (data.appName) sAN(data.appName);
+                if (data.description) sAD(data.description);
+                addMessage({
+                  app_id: appId || 'new-app',
+                  role: 'assistant',
+                  content: `${data.acknowledgment || 'Great idea!'}\n\nBefore I build this, a few questions:\n${data.questions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`,
+                  version_number: 1,
+                  tokens_used: null,
+                  model: 'gpt-4o',
+                });
+                setIsGenerating(false);
+                setGenerationProgress(100, 'Questions ready!');
+                return;
+              }
             }
 
             // Handle streaming response
