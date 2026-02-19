@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { ChatMessage, OnboardingQuestion } from '@/types/app';
+import type { ChatMessage, OnboardingQuestion, AppBlueprint } from '@/types/app';
 
 interface AppScreen {
   name: string;
@@ -40,6 +40,9 @@ interface BuilderState {
   
   // Onboarding state
   onboarding: OnboardingState;
+  
+  // Blueprint (data model, auth config, etc.)
+  blueprint: AppBlueprint | null;
   
   // Error handling
   lastError: string | null;
@@ -628,6 +631,8 @@ export const useBuilderStore = create<BuilderState>()(
       
       onboarding: { isOnboarding: false, questions: [], acknowledgment: '' },
       
+      blueprint: null,
+      
       lastError: null,
       
       // Actions
@@ -769,19 +774,21 @@ export const useBuilderStore = create<BuilderState>()(
         const { onboarding: onboardingState } = get();
         const mode = isUpdate ? 'update' : (isFirstMessage && screens.length === 0 && !onboardingState.acknowledgment ? 'onboarding' : 'generate');
 
-        // Add AI response message
-        const aiResponseContent = isUpdate 
-          ? `I'll update your app based on your request. Let me modify the relevant screens while maintaining consistency across the app.`
-          : `I'll build that for you! Creating a ${prompt.toLowerCase()} with modern design and functionality. This will include user interface, data management, and responsive design.`;
-          
-        addMessage({
-          app_id: appId || 'new-app',
-          role: 'assistant',
-          content: aiResponseContent,
-          version_number: 1,
-          tokens_used: 150,
-          model: 'gpt-4o',
-        });
+        // Add AI response message (skip for onboarding — questions UI will replace it)
+        if (mode !== 'onboarding') {
+          const aiResponseContent = isUpdate 
+            ? `I'll update your app based on your request. Let me modify the relevant screens while maintaining consistency across the app.`
+            : `I'll build that for you! Creating a ${prompt.toLowerCase()} with modern design and functionality. This will include user interface, data management, and responsive design.`;
+            
+          addMessage({
+            app_id: appId || 'new-app',
+            role: 'assistant',
+            content: aiResponseContent,
+            version_number: 1,
+            tokens_used: 150,
+            model: 'gpt-4o',
+          });
+        }
         
         try {
           // For demo app, use mock data but still call API for new apps
@@ -851,8 +858,13 @@ export const useBuilderStore = create<BuilderState>()(
               });
             }
           } else {
-            // Make streaming API call
-            const response = await fetch('/api/generate', {
+            // API base — direct to backend on localhost, proxy on production
+            const apiBase = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+              ? 'http://localhost:3001' 
+              : '';
+
+            // Step 1: Call API (onboarding or start generation job)
+            const response = await fetch(`${apiBase}/api/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -868,93 +880,74 @@ export const useBuilderStore = create<BuilderState>()(
               throw new Error(`API call failed: ${response.status}`);
             }
 
-            // Handle onboarding (non-streaming JSON response)
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-              const data = await response.json();
-              if (data.type === 'questions' && data.questions) {
-                const { setOnboarding, setAppName: sAN, setAppDescription: sAD } = get();
-                setOnboarding({ isOnboarding: true, questions: data.questions, acknowledgment: data.acknowledgment || '' });
-                if (data.appName) sAN(data.appName);
-                if (data.description) sAD(data.description);
-                // Add a message that will trigger the interactive questions UI
-                addMessage({
-                  app_id: appId || 'new-app',
-                  role: 'assistant',
-                  content: `__ONBOARDING_QUESTIONS__`,
-                  version_number: 1,
-                  tokens_used: null,
-                  model: 'gpt-4o',
-                });
-                setIsGenerating(false);
-                setGenerationProgress(100, 'Questions ready!');
-                return;
-              }
+            const data = await response.json();
+
+            // Handle onboarding questions
+            if (data.type === 'questions' && data.questions) {
+              const { setOnboarding, setAppName: sAN, setAppDescription: sAD } = get();
+              setOnboarding({ isOnboarding: true, questions: data.questions, acknowledgment: data.acknowledgment || '' });
+              if (data.appName) sAN(data.appName);
+              if (data.description) sAD(data.description);
+              addMessage({
+                app_id: appId || 'new-app',
+                role: 'assistant',
+                content: `__ONBOARDING_QUESTIONS__`,
+                version_number: 1,
+                tokens_used: null,
+                model: null,
+              });
+              setIsGenerating(false);
+              setGenerationProgress(100, 'Questions ready!');
+              return;
             }
 
-            // Handle streaming response
-            const reader = response.body?.getReader();
-            if (!reader) {
-              throw new Error('Response body is not readable');
-            }
+            // Handle job-based generation — poll until complete
+            if (data.type === 'job' && data.jobId) {
+              const jobId = data.jobId;
+              let lastScreenCount = 0;
 
-            const decoder = new TextDecoder();
-            let buffer = '';
+              setGenerationProgress(5, 'Planning your app...');
 
-            try {
+              // Poll every 3 seconds
               while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) break;
-                
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n\n');
-                buffer = lines.pop() || '';
-                
-                for (const line of lines) {
-                  if (line.startsWith('data: ')) {
-                    try {
-                      const data = JSON.parse(line.slice(6));
-                      
-                      if (data.type === 'progress') {
-                        setGenerationProgress(data.progress, data.message);
-                      } else if (data.type === 'complete') {
-                        // Handle completion
-                        if (!isUpdate) {
-                          clearScreens();
-                        }
-                        
-                        // Set app metadata
-                        if (data.appName) {
-                          setAppName(data.appName);
-                        }
-                        if (data.description) {
-                          setAppDescription(data.description);
-                        }
+                await new Promise(r => setTimeout(r, 3000));
 
-                        // Add/update screens with diff detection
-                        if (data.screens && Array.isArray(data.screens)) {
-                          data.screens.forEach((newScreen: { name: string; html: string }, index: number) => {
-                            if (isUpdate && screens[index]) {
-                              // Update mode: compare and update only if changed
-                              if (screens[index].html !== newScreen.html) {
-                                updateScreen(index, { ...newScreen, isActive: true });
-                              }
-                            } else {
-                              // Initial mode: add new screen
-                              addScreen(newScreen);
-                            }
-                          });
-                        }
-                      }
-                    } catch (parseError) {
-                      console.error('Failed to parse streaming data:', parseError);
-                    }
+                const pollRes = await fetch(`${apiBase}/api/job/${jobId}`);
+                if (!pollRes.ok) throw new Error('Failed to check job status');
+                const job = await pollRes.json();
+
+                if (job.status === 'error') {
+                  throw new Error(job.error || 'Generation failed');
+                }
+
+                // Update progress
+                const progress = job.status === 'planning' ? 8 
+                  : Math.min(95, 10 + (job.completedScreens / job.totalScreens) * 85);
+                const msg = job.status === 'planning' ? 'Planning your app...'
+                  : job.completedScreens < job.totalScreens 
+                    ? `Building ${job.screenNames?.[job.currentScreen - 1] || 'screen'} (${job.completedScreens}/${job.totalScreens})...`
+                    : 'Finalizing...';
+                setGenerationProgress(progress, msg);
+
+                // Add new screens as they arrive
+                if (job.screens && job.screens.length > lastScreenCount) {
+                  for (let i = lastScreenCount; i < job.screens.length; i++) {
+                    if (i === 0 && !isUpdate) clearScreens();
+                    addScreen({ name: job.screens[i].name, html: job.screens[i].html });
                   }
+                  lastScreenCount = job.screens.length;
+                }
+
+                // Set metadata
+                if (job.appName) setAppName(job.appName);
+                if (job.description) setAppDescription(job.description);
+                if (job.blueprint) set({ blueprint: job.blueprint });
+
+                // Done!
+                if (job.status === 'complete') {
+                  break;
                 }
               }
-            } finally {
-              reader.releaseLock();
             }
           }
           

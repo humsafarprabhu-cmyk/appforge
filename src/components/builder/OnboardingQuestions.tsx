@@ -8,7 +8,16 @@ export function OnboardingQuestions() {
   const { onboarding, submitOnboarding, isGenerating } = useBuilderStore();
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
 
-  if (!onboarding.isOnboarding || onboarding.questions.length === 0) return null;
+  if (!onboarding.isOnboarding || onboarding.questions.length === 0) {
+    return (
+      <div className="w-full max-w-lg p-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-3 h-3 bg-indigo-500 rounded-full animate-pulse" />
+          <p className="text-sm text-white/60">Preparing questions...</p>
+        </div>
+      </div>
+    );
+  }
 
   const toggleCheckbox = (qId: string, option: string) => {
     setAnswers((prev) => {

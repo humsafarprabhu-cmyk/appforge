@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { exportAsZip, exportAsPWA } from "@/lib/export";
 import { useBuilderStore } from "@/stores/builder-store";
 import type { ChatMessage } from "@/types/app";
+import { OnboardingQuestions } from "./OnboardingQuestions";
 
 interface Screen {
   name: string;
@@ -539,6 +540,8 @@ function ToolbarButton({ icon, label, onClick }: { icon: React.ReactNode; label:
 }
 
 function MessageBubble({ message }: { message: ChatMessage }) {
+  const isOnboarding = message.role === "assistant" && message.content.includes("__ONBOARDING_QUESTIONS__");
+
   if (message.role === "system") {
     return (
       <motion.div
@@ -549,6 +552,18 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <span className="text-[11px] text-white/25 bg-white/[0.03] px-3 py-1 rounded-full">
           {message.content}
         </span>
+      </motion.div>
+    );
+  }
+
+  if (isOnboarding) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-start w-full"
+      >
+        <OnboardingQuestions />
       </motion.div>
     );
   }

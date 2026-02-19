@@ -59,6 +59,9 @@ const DEMO_APPS: App[] = [
     play_store_rejection_reason: null,
     pwa_enabled: true,
     pwa_url: 'https://fittracker.appforge.app',
+    blueprint: null,
+    end_user_count: 24,
+    storage_used_bytes: 0,
     created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
     updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
   },
@@ -90,6 +93,9 @@ const DEMO_APPS: App[] = [
     play_store_rejection_reason: null,
     pwa_enabled: true,
     pwa_url: 'https://recipebook.appforge.app',
+    blueprint: null,
+    end_user_count: 12,
+    storage_used_bytes: 0,
     created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
     updated_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
   },
@@ -121,6 +127,9 @@ const DEMO_APPS: App[] = [
     play_store_rejection_reason: null,
     pwa_enabled: false,
     pwa_url: null,
+    blueprint: null,
+    end_user_count: 0,
+    storage_used_bytes: 0,
     created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
     updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
   }
@@ -185,6 +194,9 @@ export const useAppStore = create<AppStoreState>()(
             play_store_rejection_reason: null,
             pwa_enabled: false,
             pwa_url: null,
+    blueprint: null,
+    end_user_count: 0,
+    storage_used_bytes: 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             ...appData,

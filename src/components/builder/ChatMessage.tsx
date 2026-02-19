@@ -17,8 +17,7 @@ export function ChatMessage({ message, index }: ChatMessageProps) {
   const onboarding = useBuilderStore((s) => s.onboarding);
   const isOnboardingMessage =
     message.role === "assistant" &&
-    message.content === "__ONBOARDING_QUESTIONS__" &&
-    onboarding.isOnboarding;
+    message.content.includes("__ONBOARDING_QUESTIONS__");
 
   return (
     <motion.div
