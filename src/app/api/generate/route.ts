@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 import { OPENAI_MODEL, MAX_CODE_TOKENS } from '@/config/constants';
 
 // Use Edge Runtime for longer timeout (300s vs 10s on serverless)
-export const runtime = 'edge';
 export const maxDuration = 60;
 
 interface GenerateRequest {
