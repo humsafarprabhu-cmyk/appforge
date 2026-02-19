@@ -3,7 +3,7 @@ export const APP_DESCRIPTION = 'Describe your app. It\'s on your phone in 2 minu
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export const OPENAI_MODEL = 'gpt-4o';
-export const MAX_CODE_TOKENS = 16000;
+export const MAX_CODE_TOKENS = 8000;
 export const MAX_CHAT_TOKENS = 4000;
 
 export const BUILD_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
