@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, LogOut, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Modal, ModalFooter } from "@/components/ui/modal";
-import { useAppStore } from "@/stores/app-store";
 import { APP_CATEGORIES } from "@/config/plans";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
@@ -16,6 +15,8 @@ import { AppCard } from "@/components/dashboard/AppCard";
 import { CreateAppModal } from "@/components/dashboard/CreateAppModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/client";
 import type { App } from "@/types/app";
 
 const fadeInUp = {
@@ -40,37 +41,48 @@ const staggerContainer = {
 
 export function DashboardClient() {
   const router = useRouter();
-  const { 
-    apps, 
-    stats, 
-    isLoading, 
-    hasInitialized,
-    createApp, 
-    deleteApp, 
-    initializeDemoData,
-    refreshStats 
-  } = useAppStore();
+  const { user, profile, signOut } = useAuth();
+  const supabase = createClient();
 
+  const [apps, setApps] = useState<App[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Initialize demo data on mount if not already initialized
-  useEffect(() => {
-    if (!hasInitialized) {
-      initializeDemoData();
-    } else {
-      refreshStats();
+  const stats = {
+    totalApps: apps.length,
+    totalBuilds: apps.reduce((sum, app) => sum + (app.current_version || 1), 0),
+    activePWAs: apps.filter(app => app.status === 'published').length,
+  };
+
+  const fetchApps = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('apps')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setApps((data || []) as unknown as App[]);
+    } catch (err) {
+      console.error('Failed to fetch apps:', err);
+    } finally {
+      setIsLoading(false);
     }
-  }, [hasInitialized, initializeDemoData, refreshStats]);
+  }, [supabase]);
+
+  useEffect(() => {
+    if (user) fetchApps();
+    else setIsLoading(false);
+  }, [user, fetchApps]);
 
   const filteredApps = apps.filter(app => {
     const matchesSearch = app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          app.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = !selectedCategory || app.category === selectedCategory;
-    
     return matchesSearch && matchesCategory;
   });
 
@@ -81,15 +93,32 @@ export function DashboardClient() {
     }
 
     try {
-      const app = await createApp(appData);
+      setIsLoading(true);
+      const slug = appData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      const { data, error } = await supabase
+        .from('apps')
+        .insert({
+          user_id: user!.id,
+          name: appData.name,
+          slug,
+          description: appData.description || '',
+          category: appData.category || 'custom',
+          package_name: `com.appforge.${slug}`,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
       toast.success('App created successfully!');
       setIsCreateModalOpen(false);
-      
-      // Redirect to builder using Next.js router
-      router.push(`/builder/${app.id}`);
+      router.push(`/builder/${data.id}`);
     } catch (error) {
       toast.error('Failed to create app');
       console.error('Create app error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,13 +126,19 @@ export function DashboardClient() {
     if (!selectedApp) return;
 
     try {
-      await deleteApp(selectedApp.id);
+      setIsLoading(true);
+      const { error } = await supabase.from('apps').delete().eq('id', selectedApp.id);
+      if (error) throw error;
+
+      setApps(prev => prev.filter(a => a.id !== selectedApp.id));
       toast.success('App deleted successfully');
       setIsDeleteModalOpen(false);
       setSelectedApp(null);
     } catch (error) {
       toast.error('Failed to delete app');
       console.error('Delete app error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -112,13 +147,40 @@ export function DashboardClient() {
     setIsDeleteModalOpen(true);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <DashboardHeader onCreateApp={() => setIsCreateModalOpen(true)} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Overview */}
+        {/* User greeting */}
+        <motion.div
+          className="flex items-center justify-between mb-8"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div>
+            <h1 className="text-3xl font-bold">
+              Hey, {profile?.full_name?.split(' ')[0] || 'Builder'} 👋
+            </h1>
+            <p className="text-muted mt-1">
+              {apps.length === 0 ? "Ready to build your first app?" : `You have ${apps.length} app${apps.length !== 1 ? 's' : ''}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted bg-surface px-3 py-1 rounded-full capitalize">
+              {profile?.plan || 'free'} plan
+            </span>
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </motion.div>
+
         <StatsOverview stats={stats} />
 
         {/* Search and Filters */}
@@ -145,7 +207,7 @@ export function DashboardClient() {
             >
               All
             </Button>
-            {APP_CATEGORIES.map((category) => (
+            {APP_CATEGORIES.slice(0, 6).map((category) => (
               <Button
                 key={category.id}
                 variant={selectedCategory === category.id ? "primary" : "ghost"}
@@ -160,8 +222,14 @@ export function DashboardClient() {
           </div>
         </motion.div>
 
-        {/* Apps Grid */}
-        {filteredApps.length > 0 ? (
+        {/* Loading state */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="glass rounded-2xl h-[300px] animate-pulse" />
+            ))}
+          </div>
+        ) : filteredApps.length > 0 || searchQuery === '' ? (
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             variants={staggerContainer}
@@ -176,16 +244,15 @@ export function DashboardClient() {
                 hover
               >
                 <CardContent className="p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
-                  <div className="w-16 h-16 bg-surface rounded-2xl flex items-center justify-center mb-4">
-                    <Plus className="w-8 h-8 text-muted" />
+                  <div className="w-16 h-16 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center mb-4">
+                    <Sparkles className="w-8 h-8 text-primary" />
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Create New App</h3>
-                  <p className="text-muted text-sm">Start building your next mobile app</p>
+                  <p className="text-muted text-sm">Describe it, and AI builds it in minutes</p>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* App Cards */}
             {filteredApps.map((app) => (
               <AppCard 
                 key={app.id} 
@@ -204,7 +271,6 @@ export function DashboardClient() {
         )}
       </div>
 
-      {/* Create App Modal */}
       <CreateAppModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -212,7 +278,6 @@ export function DashboardClient() {
         isLoading={isLoading}
       />
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -228,10 +293,9 @@ export function DashboardClient() {
             <div>
               <p className="font-medium text-white">This will permanently delete:</p>
               <ul className="text-sm text-muted mt-1 space-y-1">
-                <li>• App code and assets</li>
-                <li>• All app versions</li>
+                <li>• App code and all screens</li>
                 <li>• Chat history</li>
-                <li>• Analytics data</li>
+                <li>• All versions</li>
               </ul>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/contexts/auth-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -92,7 +93,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} font-sans antialiased bg-background text-foreground`}
       >
+        <AuthProvider>
         {children}
+        </AuthProvider>
         <Toaster
           theme="dark"
           position="top-right"
