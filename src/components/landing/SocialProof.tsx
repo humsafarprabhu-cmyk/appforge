@@ -7,7 +7,7 @@ export function SocialProof() {
   const stats = [
     { icon: <Zap className="w-5 h-5 text-yellow-400" />, value: "2 min", label: "Average build time" },
     { icon: <Shield className="w-5 h-5 text-green-400" />, value: "100%", label: "Client-side privacy" },
-    { icon: <Clock className="w-5 h-5 text-blue-400" />, value: "3", label: "Screens per app" },
+    { icon: <Clock className="w-5 h-5 text-blue-400" />, value: "5", label: "Screens per app" },
     { icon: <Sparkles className="w-5 h-5 text-purple-400" />, value: "GPT-4o", label: "Powered by" },
   ];
 
