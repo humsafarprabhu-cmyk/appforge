@@ -113,6 +113,8 @@ export function DashboardClient() {
 
       toast.success('App created successfully!');
       setIsCreateModalOpen(false);
+      // Store description as prompt so builder auto-starts generation (skips suggestion chips)
+      localStorage.setItem('af_builder_prompt', appData.description || appData.name);
       router.push(`/builder/${data.id}`);
     } catch (error) {
       toast.error('Failed to create app');

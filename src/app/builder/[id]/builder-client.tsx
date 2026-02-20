@@ -4,7 +4,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useBuilderStore } from "@/stores/builder-store";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { BuilderEditor } from "@/components/builder/BuilderEditor";
+import { StudioLayout } from "@/components/studio/StudioLayout";
 
 interface BuilderClientProps {
   id: string;
@@ -126,7 +126,20 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
       initializeDemoData();
     } else {
       setAppId(appId);
-      loadFromSupabase();
+      loadFromSupabase().then(() => {
+        // Auto-start generation if coming from dashboard create modal
+        const pendingPrompt = localStorage.getItem('af_builder_prompt');
+        if (pendingPrompt) {
+          localStorage.removeItem('af_builder_prompt');
+          // Small delay to let state settle
+          setTimeout(() => {
+            generateApp(pendingPrompt).then(() => {
+              saveToSupabase();
+              toast.success('App generated! 🎉');
+            }).catch(() => toast.error('Generation failed. Try again.'));
+          }, 500);
+        }
+      });
     }
   }, [appId, initializeDemoData, setAppId, loadFromSupabase]);
 
@@ -167,22 +180,18 @@ export function BuilderClient({ id: appId }: BuilderClientProps) {
   };
 
   return (
-    <BuilderEditor
+    <StudioLayout
       appId={appId}
-      appName={appName}
-      screens={screens}
-      currentScreen={currentScreen}
-      messages={messages}
-      isGenerating={isGenerating}
-      generationProgress={generationProgress}
-      generationMessage={generationMessage}
-      lastError={lastError}
-      chatInputValue={chatInputValue}
-      onAppNameChange={setAppName}
-      onScreenChange={setCurrentScreen}
-      onChatInputChange={setChatInputValue}
-      onSendMessage={handleSendMessage}
-      onRetry={handleRetry}
+      onSendMessage={(msg: string) => {
+        setChatInputValue(msg);
+        // Trigger send after state update
+        setTimeout(() => {
+          generateApp(msg).then(() => {
+            saveToSupabase();
+            toast.success('App updated!');
+          }).catch(() => toast.error('Failed. Try again.'));
+        }, 100);
+      }}
     />
   );
 }

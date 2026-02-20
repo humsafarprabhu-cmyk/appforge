@@ -42,9 +42,18 @@ export function TryClient() {
   } = useBuilderStore();
 
   useEffect(() => {
+    // Try to load saved state first
+    const store = useBuilderStore.getState();
+    store.loadState();
+    
+    // If we have existing screens (returning to edit), skip landing
+    const existingScreens = useBuilderStore.getState().screens;
+    if (existingScreens.length > 0) {
+      setShowLanding(false);
+      return;
+    }
+    
     setAppId("try-mode");
-    clearScreens();
-    clearMessages();
     
     // Check if arriving from template gallery
     if (typeof window !== 'undefined') {
@@ -53,7 +62,6 @@ export function TryClient() {
       if (templatePrompt) {
         localStorage.removeItem('af_template_prompt');
         localStorage.removeItem('af_template_name');
-        // Auto-start with template
         setInputValue(templatePrompt);
         if (templateName) setAppName(templateName);
         setTimeout(() => handleStart(templatePrompt), 500);

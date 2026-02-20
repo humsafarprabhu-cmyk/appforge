@@ -186,8 +186,8 @@ export function BuilderEditor({
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4 scrollbar-thin">
 
-            {/* Empty state */}
-            {messages.length === 0 && !isGenerating && (
+            {/* Empty state — only show when no screens exist */}
+            {messages.length === 0 && !isGenerating && screens.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center px-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-2xl flex items-center justify-center mb-5">
                   <Sparkles className="w-8 h-8 text-indigo-400" />

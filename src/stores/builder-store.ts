@@ -785,9 +785,13 @@ export const useBuilderStore = create<BuilderState>()(
         const isFirstMessage = messages.filter(m => m.role === 'user').length <= 1;
         const { onboarding: onboardingState, currentScreen, lastJobId } = get();
         
+        // Detect "new screen" requests
+        const newScreenKeywords = ['new screen', 'add a screen', 'add screen', 'create a screen', 'create screen', 'make a screen', 'make screen', 'new page', 'add a page', 'add page', 'create a page'];
+        const isNewScreenRequest = isUpdate && newScreenKeywords.some(kw => prompt.toLowerCase().includes(kw));
+        
         // Detect edit commands (when app already exists)
         const editKeywords = ['change', 'make', 'update', 'modify', 'add', 'remove', 'move', 'fix', 'replace', 'set', 'increase', 'decrease', 'hide', 'show', 'delete', 'bigger', 'smaller', 'color', 'font', 'text', 'button', 'image', 'icon', 'title', 'header', 'background'];
-        const isEditCommand = isUpdate && editKeywords.some(kw => prompt.toLowerCase().includes(kw));
+        const isEditCommand = isUpdate && !isNewScreenRequest && editKeywords.some(kw => prompt.toLowerCase().includes(kw));
         
         const mode = isEditCommand ? 'edit' : isUpdate ? 'update' : (isFirstMessage && screens.length === 0 && !onboardingState.acknowledgment ? 'onboarding' : 'generate');
 
@@ -873,6 +877,39 @@ export const useBuilderStore = create<BuilderState>()(
                   </div>
                 `
               });
+            }
+          } else if (isNewScreenRequest && screens.length > 0) {
+            // NEW SCREEN MODE — generate a fresh screen and append it
+            const apiBase = getApiBase();
+            
+            // Extract screen name from prompt
+            const screenName = prompt
+              .replace(/add a new screen|add new screen|new screen|add a screen|add screen|create a screen|create screen|make a new screen|make a screen|make screen|new page|add a new page|add new page|add a page|add page|create a page/gi, '')
+              .replace(/^[\s,:;.!?for-]+|[\s,:;.!?]+$/gi, '')
+              .trim() || 'New Screen';
+            
+            setGenerationProgress(30, `Creating ${screenName}...`);
+            
+            const existingScreenNames = screens.map(s => s.name).join(', ');
+            const editRes = await fetch(`${apiBase}/api/edit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                instruction: `Create a COMPLETELY NEW screen called "${screenName}" for this app. The app already has these screens: ${existingScreenNames}. CRITICAL: Copy the EXACT same dark background colors, gradient styles, font colors, card styles, and bottom navigation bar from the reference HTML below. Do NOT use white/light backgrounds — match the dark theme exactly. Include real meaningful content (not lorem ipsum). The screen should be a full mobile screen with header, scrollable content, and the same bottom navigation. The user asked: "${prompt}"`,
+                currentHtml: screens[0]?.html || '', // Pass first screen as style reference
+              }),
+            });
+            
+            if (!editRes.ok) throw new Error('Failed to create new screen');
+            const editData = await editRes.json();
+            
+            if (editData.success && editData.html) {
+              addScreen({ name: screenName.charAt(0).toUpperCase() + screenName.slice(1), html: editData.html });
+              // Switch to the new screen
+              set({ currentScreen: screens.length });
+              setGenerationProgress(100, 'New screen created!');
+            } else {
+              throw new Error(editData.message || 'Failed to create screen');
             }
           } else if (mode === 'edit' && screens.length > 0) {
             // EDIT MODE — use /api/edit for the current screen
