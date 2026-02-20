@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare, Smartphone, Database, Users, Rocket,
   Settings, History, ChevronLeft, ChevronRight, Sparkles,
-  Send, Loader2, PanelLeftClose, PanelLeft
+  Send, Loader2, PanelLeftClose, PanelLeft, QrCode, Share2, X
 } from "lucide-react";
+import { toast } from "sonner";
 import { useBuilderStore } from "@/stores/builder-store";
 import { PhonePreview } from "@/components/builder/PhonePreview";
 import { ScreenNavigator } from "@/components/builder/ScreenNavigator";
@@ -46,6 +47,7 @@ export function StudioLayout({ appId, onSendMessage }: StudioLayoutProps) {
   const [activeTab, setActiveTab] = useState<TabId>("chat");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [showQR, setShowQR] = useState(false);
 
   const {
     appName,
@@ -61,6 +63,19 @@ export function StudioLayout({ appId, onSendMessage }: StudioLayoutProps) {
     setAppName,
     setCurrentScreen,
   } = useBuilderStore();
+
+  // Bug 3: Listen for nav postMessage from iframe
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'navigate' && e.data.screen) {
+        const targetName = e.data.screen.toLowerCase();
+        const idx = screens.findIndex(s => s.name.toLowerCase() === targetName);
+        if (idx >= 0) setCurrentScreen(idx);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [screens, setCurrentScreen]);
 
   const handleSend = useCallback(() => {
     if (!chatInput.trim() || isGenerating) return;
@@ -111,13 +126,57 @@ export function StudioLayout({ appId, onSendMessage }: StudioLayoutProps) {
         </div>
         <div className="flex items-center gap-2">
           {screens.length > 0 && (
-            <div className="text-xs text-white/40 flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Live
-            </div>
+            <>
+              <div className="text-xs text-white/40 flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Live
+              </div>
+              <button
+                onClick={() => {
+                  const url = window.location.href;
+                  if (navigator.share) {
+                    navigator.share({ title: appName || 'My App', url }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(url);
+                    toast.success("Link copied to clipboard!");
+                  }
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-all"
+                title="Share"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowQR(!showQR)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-all"
+                title="QR Code"
+              >
+                <QrCode className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       </header>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowQR(false)}>
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 text-center max-w-sm" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-white/80">Scan to open on phone</h3>
+              <button onClick={() => setShowQR(false)} className="text-white/40 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="bg-white p-4 rounded-xl inline-block">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                alt="QR Code"
+                className="w-48 h-48"
+              />
+            </div>
+            <p className="text-xs text-white/40 mt-3">Publish your app first for a permanent shareable link</p>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         {/* Activity Bar (icon sidebar) */}
@@ -217,13 +276,40 @@ export function StudioLayout({ appId, onSendMessage }: StudioLayoutProps) {
               </div>
 
               {/* Phone frame */}
-              <div className="relative">
-                <div className="w-[375px] h-[812px] rounded-[3rem] border-[3px] border-white/[0.08] bg-[#0a0a0f] overflow-hidden shadow-2xl shadow-black/50">
+              <div className="relative" style={{ height: 'min(calc(100vh - 200px), 812px)', aspectRatio: '375/812' }}>
+                <div className="w-full h-full rounded-[3rem] border-[3px] border-white/[0.08] bg-[#0a0a0f] overflow-hidden shadow-2xl shadow-black/50">
                   {/* Notch */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[28px] bg-black rounded-b-2xl z-10" />
                   {/* Screen content */}
                   <iframe
-                    srcDoc={screens[currentScreen]?.html || ""}
+                    srcDoc={(() => {
+                      const raw = screens[currentScreen]?.html || "";
+                      const cssInject = `<style>html{font-size:14px}body{margin:0;overflow-x:hidden;-webkit-text-size-adjust:100%}*{box-sizing:border-box}</style>`;
+                      const navBridge = `<script>
+document.addEventListener('click', function(e) {
+  var el = e.target.closest('[data-screen],[onclick*="navigate"]');
+  if (!el) return;
+  var screen = el.getAttribute('data-screen');
+  if (!screen) {
+    var m = (el.getAttribute('onclick')||'').match(/navigate.*?['"](\\w+)['"]/);
+    if (m) screen = m[1];
+  }
+  if (!screen) {
+    var text = el.textContent.trim().toLowerCase();
+    if (text) { screen = text; }
+  }
+  if (screen) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.parent.postMessage({type:'navigate',screen:screen},'*');
+  }
+}, true);
+<\/script>`;
+                      if (raw.includes('</head>')) {
+                        return raw.replace('</head>', cssInject + navBridge + '</head>');
+                      }
+                      return cssInject + navBridge + raw;
+                    })()}
                     className="w-full h-full border-none"
                     sandbox="allow-scripts allow-same-origin"
                     title={screens[currentScreen]?.name || "Preview"}

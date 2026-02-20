@@ -53,13 +53,9 @@ export function PhonePreview({ screens, currentScreen, deviceFrame, isGenerating
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
           style={{
-            width: currentFrameConfig.width + (currentFrameConfig.bezel * 2),
-            height: currentFrameConfig.height + (currentFrameConfig.bezel * 2),
-            maxHeight: 'calc(100vh - 320px)',
+            aspectRatio: `${currentFrameConfig.width + (currentFrameConfig.bezel * 2)} / ${currentFrameConfig.height + (currentFrameConfig.bezel * 2)}`,
+            height: 'min(calc(100vh - 280px), ' + (currentFrameConfig.height + (currentFrameConfig.bezel * 2)) + 'px)',
             maxWidth: '100%',
-            aspectRatio: `${currentFrameConfig.width} / ${currentFrameConfig.height}`,
-            transform: 'scale(min(1, (100vw - 120px) / ' + (currentFrameConfig.width + (currentFrameConfig.bezel * 2)) + ', (100vh - 360px) / ' + (currentFrameConfig.height + (currentFrameConfig.bezel * 2)) + '))',
-            transformOrigin: 'center center',
             filter: 'drop-shadow(0 20px 40px rgba(99, 102, 241, 0.15))',
           }}
         >

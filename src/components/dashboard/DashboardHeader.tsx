@@ -20,7 +20,7 @@ export function DashboardHeader({ onCreateApp }: DashboardHeaderProps) {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
                 <Code2 className="w-5 h-5 text-white" />
               </div>

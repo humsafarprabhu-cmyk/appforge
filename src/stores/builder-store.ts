@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { ChatMessage, OnboardingQuestion, AppBlueprint } from '@/types/app';
+import { getApiBase } from '@/lib/api';
 
 interface AppScreen {
   name: string;
@@ -875,9 +876,7 @@ export const useBuilderStore = create<BuilderState>()(
             }
           } else if (mode === 'edit' && screens.length > 0) {
             // EDIT MODE — use /api/edit for the current screen
-            const apiBase = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-              ? 'http://localhost:3001' 
-              : '';
+            const apiBase = getApiBase();
             
             const screenIdx = currentScreen || 0;
             const screenHtml = screens[screenIdx]?.html || '';
@@ -906,9 +905,7 @@ export const useBuilderStore = create<BuilderState>()(
             }
           } else {
             // API base — direct to backend on localhost, proxy on production
-            const apiBase = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-              ? 'http://localhost:3001' 
-              : '';
+            const apiBase = getApiBase();
 
             // Step 1: Call API (onboarding or start generation job)
             const response = await fetch(`${apiBase}/api/generate`, {
@@ -1040,8 +1037,9 @@ export const useBuilderStore = create<BuilderState>()(
                 }).eq('id', currentAppId);
               } else {
                 // Create new app
-                const slug = (currentAppName || 'app').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                const { data: newApp } = await supabase.from('apps').insert({
+                const baseSlug = (currentAppName || 'app').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                const slug = `${baseSlug}-${Date.now().toString(36)}`;
+                const { data: newApp, error: insertErr } = await supabase.from('apps').insert({
                   user_id: authUser.id,
                   name: currentAppName || 'My App',
                   slug,
@@ -1053,8 +1051,11 @@ export const useBuilderStore = create<BuilderState>()(
                   status: 'draft',
                 }).select().single();
                 
-                if (newApp) {
+                if (insertErr) {
+                  console.error('[AppForge] Supabase insert error:', insertErr);
+                } else if (newApp) {
                   set({ appId: newApp.id });
+                  console.log('[AppForge] New app created with id:', newApp.id);
                 }
               }
               console.log('[AppForge] Saved to Supabase ✅');

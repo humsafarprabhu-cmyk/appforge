@@ -18,9 +18,8 @@ export async function exportAsExpo(
   category: string = 'productivity',
   blueprint?: any,
 ) {
-  const apiBase = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:3001'
-    : '';
+  const { getApiBase } = await import('./api');
+  const apiBase = getApiBase();
 
   const response = await fetch(`${apiBase}/api/export/react-native`, {
     method: 'POST',

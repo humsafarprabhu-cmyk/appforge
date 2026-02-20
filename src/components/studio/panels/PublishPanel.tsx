@@ -7,6 +7,7 @@ import { exportAsZip, exportAsPWA, exportAsExpo } from "@/lib/export";
 import { useBuilderStore } from "@/stores/builder-store";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
+import { getApiBase } from "@/lib/api";
 
 interface Screen {
   name: string;
@@ -26,7 +27,7 @@ export function PublishPanel({ appId, appName, screens, appDescription }: Publis
   const { user } = useAuth();
   const { blueprint } = useBuilderStore();
 
-  const apiBase = typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:3001" : "";
+  const apiBase = getApiBase();
   
   // For try-mode, link to backend functional app endpoint
   const jobId = useBuilderStore.getState().lastJobId;
@@ -176,7 +177,7 @@ export function PublishPanel({ appId, appName, screens, appDescription }: Publis
           </div>
           <div>
             <p className="text-sm font-medium text-white/80">Download PWA</p>
-            <p className="text-xs text-white/30 mt-0.5">Progressive Web App with offline support</p>
+            <p className="text-xs text-white/30 mt-0.5">Install on phone home screen — works offline, no app store needed</p>
           </div>
         </div>
       </button>
@@ -209,20 +210,32 @@ export function PublishPanel({ appId, appName, screens, appDescription }: Publis
       </button>
 
       {/* APK Build */}
-      <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 opacity-40">
+      <button
+        onClick={() => {
+          toast("APK builds coming soon! For now, use the React Native (Expo) export above, then run: npx eas build --platform android --profile preview", {
+            duration: 8000,
+            action: {
+              label: "Expo Docs",
+              onClick: () => window.open("https://docs.expo.dev/build/setup/", "_blank"),
+            },
+          });
+        }}
+        disabled={screens.length === 0}
+        className="w-full rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 text-left hover:bg-white/[0.04] transition-all disabled:opacity-40 group"
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center">
             <Smartphone className="w-4 h-4 text-teal-400" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-white/50">Build APK</p>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/30 font-medium">Maker Plan</span>
+              <p className="text-sm font-medium text-white/80">Build APK</p>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400 font-medium">Via Expo EAS</span>
             </div>
-            <p className="text-xs text-white/20 mt-0.5">Signed Android APK via cloud build</p>
+            <p className="text-xs text-white/30 mt-0.5">Export as React Native, then build APK with EAS Build</p>
           </div>
         </div>
-      </div>
+      </button>
 
       {/* iOS */}
       <div className="rounded-xl bg-white/[0.02] border border-white/[0.04] p-4 opacity-40">

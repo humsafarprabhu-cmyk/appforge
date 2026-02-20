@@ -142,7 +142,7 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
         </Button>
         {liveUrl && (
           <a href={liveUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" size="sm" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
+            <Button variant="secondary" size="sm" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
               <ExternalLink className="w-4 h-4 mr-2" />
               Open
             </Button>
