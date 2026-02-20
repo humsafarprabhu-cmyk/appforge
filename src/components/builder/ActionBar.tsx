@@ -138,13 +138,13 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
           ) : (
             <Rocket className="w-4 h-4 mr-2" />
           )}
-          {isDeploying ? 'Deploying...' : liveUrl ? 'Redeploy' : 'Deploy Live'}
+          {isDeploying ? 'Getting link...' : liveUrl ? 'Share Again' : 'Share Live'}
         </Button>
         {liveUrl && (
           <a href={liveUrl} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
               <ExternalLink className="w-4 h-4 mr-2" />
-              Live
+              Open
             </Button>
           </a>
         )}
