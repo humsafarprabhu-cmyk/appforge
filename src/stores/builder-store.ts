@@ -1019,6 +1019,50 @@ export const useBuilderStore = create<BuilderState>()(
           // Save state to localStorage
           saveState();
           
+          // Save to Supabase if user is authenticated
+          try {
+            const { createClient } = await import('@/lib/supabase/client');
+            const supabase = createClient();
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            
+            if (authUser) {
+              const { screens: currentScreens, appName: currentAppName, appDescription: currentDesc, blueprint: currentBlueprint, appId: currentAppId } = get();
+              const screensData = currentScreens.map(s => ({ name: s.name, html: s.html }));
+              
+              if (currentAppId && currentAppId !== 'try-mode' && currentAppId !== 'new-app') {
+                // Update existing app
+                await supabase.from('apps').update({
+                  name: currentAppName,
+                  description: currentDesc,
+                  screens: screensData,
+                  blueprint: currentBlueprint || {},
+                  updated_at: new Date().toISOString(),
+                }).eq('id', currentAppId);
+              } else {
+                // Create new app
+                const slug = (currentAppName || 'app').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                const { data: newApp } = await supabase.from('apps').insert({
+                  user_id: authUser.id,
+                  name: currentAppName || 'My App',
+                  slug,
+                  description: currentDesc || '',
+                  category: 'custom',
+                  package_name: `com.appforge.${slug}`,
+                  screens: screensData,
+                  blueprint: currentBlueprint || {},
+                  status: 'draft',
+                }).select().single();
+                
+                if (newApp) {
+                  set({ appId: newApp.id });
+                }
+              }
+              console.log('[AppForge] Saved to Supabase ✅');
+            }
+          } catch (dbErr) {
+            console.warn('[AppForge] Supabase save failed (non-fatal):', dbErr);
+          }
+          
         } catch (error) {
           console.error('API generation error:', error);
           
