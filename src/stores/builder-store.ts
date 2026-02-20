@@ -782,8 +782,13 @@ export const useBuilderStore = create<BuilderState>()(
         // Determine mode
         const isUpdate = screens.length > 0;
         const isFirstMessage = messages.filter(m => m.role === 'user').length <= 1;
-        const { onboarding: onboardingState } = get();
-        const mode = isUpdate ? 'update' : (isFirstMessage && screens.length === 0 && !onboardingState.acknowledgment ? 'onboarding' : 'generate');
+        const { onboarding: onboardingState, currentScreen, lastJobId } = get();
+        
+        // Detect edit commands (when app already exists)
+        const editKeywords = ['change', 'make', 'update', 'modify', 'add', 'remove', 'move', 'fix', 'replace', 'set', 'increase', 'decrease', 'hide', 'show', 'delete', 'bigger', 'smaller', 'color', 'font', 'text', 'button', 'image', 'icon', 'title', 'header', 'background'];
+        const isEditCommand = isUpdate && editKeywords.some(kw => prompt.toLowerCase().includes(kw));
+        
+        const mode = isEditCommand ? 'edit' : isUpdate ? 'update' : (isFirstMessage && screens.length === 0 && !onboardingState.acknowledgment ? 'onboarding' : 'generate');
 
         // Add AI response message (skip for onboarding — questions UI will replace it)
         if (mode !== 'onboarding') {
@@ -867,6 +872,37 @@ export const useBuilderStore = create<BuilderState>()(
                   </div>
                 `
               });
+            }
+          } else if (mode === 'edit' && screens.length > 0) {
+            // EDIT MODE — use /api/edit for the current screen
+            const apiBase = typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+              ? 'http://localhost:3001' 
+              : '';
+            
+            const screenIdx = currentScreen || 0;
+            const screenHtml = screens[screenIdx]?.html || '';
+            
+            setGenerationProgress(30, `Editing ${screens[screenIdx]?.name || 'screen'}...`);
+            
+            const editRes = await fetch(`${apiBase}/api/edit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jobId: lastJobId,
+                screenIndex: screenIdx,
+                instruction: prompt,
+                currentHtml: screenHtml,
+              }),
+            });
+            
+            if (!editRes.ok) throw new Error('Edit failed');
+            const editData = await editRes.json();
+            
+            if (editData.success && editData.html) {
+              updateScreen(screenIdx, { html: editData.html });
+              setGenerationProgress(100, 'Edit applied!');
+            } else {
+              throw new Error(editData.message || 'Edit failed');
             }
           } else {
             // API base — direct to backend on localhost, proxy on production
