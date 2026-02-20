@@ -300,21 +300,85 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
                   </div>
                 </button>
 
-                {/* APK Build - Pro */}
-                <div className="w-full glass rounded-2xl p-5 text-left opacity-60">
+                {/* Telegram Mini App */}
+                <button
+                  onClick={async () => {
+                    if (!lastJobId) { toast.error('Generate an app first'); return; }
+                    setIsExporting(true);
+                    try {
+                      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                      const res = await fetch(`${apiBase}/api/export/telegram-mini-app`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ jobId: lastJobId, appName: appName || 'MyApp' }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        const blob = new Blob([data.files['index.html']], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = `${appName || 'app'}-telegram-miniapp.html`; a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('Telegram Mini App exported! Host it and link to @BotFather.');
+                      } else { toast.error(data.message || 'Export failed'); }
+                    } catch { toast.error('Export failed'); } finally { setIsExporting(false); }
+                  }}
+                  disabled={isExporting || !lastJobId}
+                  className="w-full glass rounded-2xl p-5 text-left hover:bg-white/10 transition-all group"
+                >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="text-2xl">✈️</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-white">Telegram Mini App</h4>
+                        <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">FREE</span>
+                      </div>
+                      <p className="text-sm text-white/60">Launch inside Telegram. Instant, no install needed.</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Capacitor APK */}
+                <button
+                  onClick={async () => {
+                    if (!lastJobId) { toast.error('Generate an app first'); return; }
+                    setIsExporting(true);
+                    try {
+                      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                      const res = await fetch(`${apiBase}/api/export/capacitor`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ jobId: lastJobId, appName: appName || 'MyApp' }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url; a.download = `${appName || 'app'}-capacitor.json`; a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('Capacitor project exported! Run npm install then npm run apk.');
+                      } else { toast.error(data.message || 'Export failed'); }
+                    } catch { toast.error('Export failed'); } finally { setIsExporting(false); }
+                  }}
+                  disabled={isExporting || !lastJobId}
+                  className="w-full glass rounded-2xl p-5 text-left hover:bg-white/10 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Smartphone className="w-6 h-6 text-orange-400" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-white">Cloud APK Build</h4>
-                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Pro</span>
+                        <h4 className="font-semibold text-white">Native APK (Capacitor)</h4>
+                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">FREE</span>
                       </div>
-                      <p className="text-sm text-white/60">One-click APK build in the cloud. No setup needed.</p>
+                      <p className="text-sm text-white/60">Full native Android APK. 5 min build with Capacitor.</p>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             </Card>
           </motion.div>
