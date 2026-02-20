@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { QrCode, Download, Rocket, Share2, Copy, X, FileArchive, Globe, Smartphone } from "lucide-react";
+import { QrCode, Download, Rocket, Share2, Copy, X, FileArchive, Globe, Smartphone, ExternalLink, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,9 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const { screens, appDescription } = useBuilderStore();
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const { screens, appDescription, lastJobId } = useBuilderStore();
   
   const previewUrl = typeof window !== 'undefined' 
     ? `${window.location.origin}/builder/demo` 
@@ -51,6 +53,34 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
       console.error(err);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleDeployLive = async () => {
+    if (!lastJobId) {
+      toast.error('Generate an app first');
+      return;
+    }
+    setIsDeploying(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiBase}/api/deploy-preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId: lastJobId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLiveUrl(data.url);
+        toast.success('🚀 App deployed live!');
+      } else {
+        toast.error(data.message || 'Deploy failed');
+      }
+    } catch (err) {
+      toast.error('Deploy failed');
+      console.error(err);
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -99,12 +129,25 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
         </Button>
         <Button 
           size="sm" 
-          disabled={screensCount === 0}
-          onClick={handlePublish}
+          disabled={screensCount === 0 || isDeploying}
+          onClick={handleDeployLive}
+          className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
         >
-          <Rocket className="w-4 h-4 mr-2" />
-          Publish
+          {isDeploying ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Rocket className="w-4 h-4 mr-2" />
+          )}
+          {isDeploying ? 'Deploying...' : liveUrl ? 'Redeploy' : 'Deploy Live'}
         </Button>
+        {liveUrl && (
+          <a href={liveUrl} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm" className="border-green-500/30 text-green-400 hover:bg-green-500/10">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Live
+            </Button>
+          </a>
+        )}
       </div>
 
       {/* QR Code Modal */}
@@ -203,18 +246,72 @@ export function ActionBar({ screensCount, appId, appName }: ActionBarProps) {
                   </div>
                 </button>
 
-                {/* APK - Coming Soon */}
-                <div className="w-full glass rounded-2xl p-5 text-left opacity-60">
+                {/* React Native Export */}
+                <button
+                  onClick={async () => {
+                    if (screens.length === 0) return;
+                    setIsExporting(true);
+                    try {
+                      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                      const res = await fetch(`${apiBase}/api/export/react-native`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          appName: appName || 'MyApp',
+                          description: appDescription || '',
+                          screens: screens.map((s: any) => ({ name: s.name, type: s.blueprint || 'dashboard', html: s.html })),
+                        }),
+                      });
+                      const data = await res.json();
+                      if (data.success && data.files) {
+                        // Download as JSON (user runs npm install + eas build)
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${appName || 'app'}-react-native.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('React Native project exported! Run npm install then eas build.');
+                      } else {
+                        toast.error(data.message || 'Export failed');
+                      }
+                    } catch (err) {
+                      toast.error('Export failed');
+                      console.error(err);
+                    } finally {
+                      setIsExporting(false);
+                    }
+                  }}
+                  disabled={isExporting}
+                  className="w-full glass rounded-2xl p-5 text-left hover:bg-white/10 transition-all group"
+                >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Smartphone className="w-6 h-6 text-purple-400" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-semibold text-white">Android APK</h4>
-                        <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">Coming Soon</span>
+                        <h4 className="font-semibold text-white">React Native (Expo)</h4>
+                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">NEW</span>
                       </div>
-                      <p className="text-sm text-white/60">Native Android app. Requires Maker plan or above.</p>
+                      <p className="text-sm text-white/60">Full Expo project. Build APK with EAS or run locally.</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* APK Build - Pro */}
+                <div className="w-full glass rounded-2xl p-5 text-left opacity-60">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                      <Smartphone className="w-6 h-6 text-orange-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-white">Cloud APK Build</h4>
+                        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">Pro</span>
+                      </div>
+                      <p className="text-sm text-white/60">One-click APK build in the cloud. No setup needed.</p>
                     </div>
                   </div>
                 </div>
