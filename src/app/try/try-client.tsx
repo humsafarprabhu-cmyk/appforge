@@ -45,6 +45,20 @@ export function TryClient() {
     setAppId("try-mode");
     clearScreens();
     clearMessages();
+    
+    // Check if arriving from template gallery
+    if (typeof window !== 'undefined') {
+      const templatePrompt = localStorage.getItem('af_template_prompt');
+      const templateName = localStorage.getItem('af_template_name');
+      if (templatePrompt) {
+        localStorage.removeItem('af_template_prompt');
+        localStorage.removeItem('af_template_name');
+        // Auto-start with template
+        setInputValue(templatePrompt);
+        if (templateName) setAppName(templateName);
+        setTimeout(() => handleStart(templatePrompt), 500);
+      }
+    }
   }, []);
 
   const handleStart = async (prompt: string) => {
@@ -157,12 +171,25 @@ export function TryClient() {
             ))}
           </motion.div>
 
+          {/* Templates link */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8"
+          >
+            <a href="/templates" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white text-sm transition-all">
+              📱 Or start from a template ({20} ready-made apps)
+              <ArrowRight className="w-3 h-3" />
+            </a>
+          </motion.div>
+
           {/* Features strip */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="flex items-center gap-8 mt-16 text-white/40 text-sm"
+            className="flex items-center gap-8 mt-12 text-white/40 text-sm"
           >
             <div className="flex items-center gap-2">
               <Smartphone className="w-4 h-4" />
